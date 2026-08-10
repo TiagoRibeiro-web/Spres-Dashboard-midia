@@ -510,7 +510,7 @@ class GraphClient:
         return df
     
     def get_big_numbers(self) -> Dict[str, float]:
-        
+   
         try:
             df_controle = self.load_worksheet("controle")
             
@@ -536,59 +536,28 @@ class GraphClient:
                 "total_saldo_positivo": 0
             }
             
-            # ===== PALAVRAS-CHAVE MAIS AMPLAS =====
-            keywords = {
-                "aprovado": ["APROV", "APROVADO", "APROV.", "APROVADO", "TOTAL CONTROLE APROV", "TOTAL CONTROLE APROVADO"],
-                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "UTILIZADO", "TOTAL CONTROLE UTILIZ", "TOTAL CONTROLE UTILIZADO"],
-                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO", "TOTAL SALDO POSITIVO"]
-            }
-            
-            # ===== PERCORRE TODAS AS LINHAS =====
+            # ===== PALAVRAS-CHAVE MAIS FLEXÍVEIS =====
             for idx, row in df_controle.iterrows():
-                primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
+                if pd.isna(row['veiculo']):
+                    continue
+                    
+                primeira_col = str(row['veiculo']).strip().upper()
                 
-                # Verifica se contém "TOTAL" + palavra-chave
-                if 'TOTAL' in primeira_col:
-                    if any(kw in primeira_col for kw in keywords["aprovado"]):
-                        big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
-                        
-                    elif any(kw in primeira_col for kw in keywords["utilizado"]):
-                        big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
-                        
-                    elif any(kw in primeira_col for kw in keywords["saldo"]):
-                        big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
-            
-            # ===== FALLBACK: Busca por posição (últimas 5 linhas) =====
-            if big_numbers["total_controle_aprovado"] == 0:
-                # Procura nas últimas 10 linhas por "APROV"
-                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 10), -1):
-                    row = df_controle.iloc[idx]
-                    desc = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
-                    if 'APROV' in desc or 'APROVADO' in desc:
-                        big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ (Fallback posição) Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
-                        break
-            
-            if big_numbers["total_controle_utilizado"] == 0:
-                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 10), -1):
-                    row = df_controle.iloc[idx]
-                    desc = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
-                    if 'UTILIZ' in desc or 'UTILIZADO' in desc:
-                        big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ (Fallback posição) Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
-                        break
-            
-            if big_numbers["total_saldo_positivo"] == 0:
-                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 10), -1):
-                    row = df_controle.iloc[idx]
-                    desc = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
-                    if 'SALDO' in desc or 'POSITIVO' in desc:
-                        big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ (Fallback posição) Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
-                        break
+                # Remove espaços extras e caracteres especiais para comparação
+                primeira_col_limpa = ' '.join(primeira_col.split())
+                
+                # ===== BUSCA EXATA COM PALAVRAS-CHAVE =====
+                if 'TOTAL CONTROLE APROVADO' in primeira_col_limpa or 'APROVADO' in primeira_col_limpa:
+                    big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
+                    logger.info(f"✅ Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
+                    
+                elif 'TOTAL CONTROLE UTILIZADO' in primeira_col_limpa or 'UTILIZADO' in primeira_col_limpa:
+                    big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
+                    logger.info(f"✅ Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
+                    
+                elif 'TOTAL SALDO POSITIVO' in primeira_col_limpa or 'SALDO' in primeira_col_limpa:
+                    big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
+                    logger.info(f"✅ Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
             
             return big_numbers
             
@@ -601,6 +570,9 @@ class GraphClient:
             }
     
     def get_totais_mensais(self) -> Dict[str, Dict[str, float]]:
+        """
+        Extrai totais mensais de Aprovado, Utilizado e Saldo.
+        """
         try:
             df_controle = self.load_worksheet("controle")
             
@@ -618,12 +590,6 @@ class GraphClient:
                 logger.warning("Nenhuma coluna de mês encontrada")
                 return {}
             
-            keywords = {
-                "aprovado": ["APROV", "APROVADO", "APROV.", "TOTAL CONTROLE APROV"],
-                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "TOTAL CONTROLE UTILIZ"],
-                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO"]
-            }
-            
             totais = {
                 "aprovado": {},
                 "utilizado": {},
@@ -631,26 +597,29 @@ class GraphClient:
             }
             
             for idx, row in df_controle.iterrows():
-                primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
+                if pd.isna(row['veiculo']):
+                    continue
+                    
+                primeira_col = str(row['veiculo']).strip().upper()
+                primeira_col_limpa = ' '.join(primeira_col.split())
                 
-                if 'TOTAL' in primeira_col:
-                    if any(kw in primeira_col for kw in keywords["aprovado"]):
-                        for col in mes_cols:
-                            if col in row.index:
-                                totais["aprovado"][col] = self._converter_valor_monetario(row[col])
-                        logger.info(f"✅ Totais mensais aprovados: {len(totais['aprovado'])} meses")
-                        
-                    elif any(kw in primeira_col for kw in keywords["utilizado"]):
-                        for col in mes_cols:
-                            if col in row.index:
-                                totais["utilizado"][col] = self._converter_valor_monetario(row[col])
-                        logger.info(f"✅ Totais mensais utilizados: {len(totais['utilizado'])} meses")
-                        
-                    elif any(kw in primeira_col for kw in keywords["saldo"]):
-                        for col in mes_cols:
-                            if col in row.index:
-                                totais["saldo"][col] = self._converter_valor_monetario(row[col])
-                        logger.info(f"✅ Totais mensais saldo: {len(totais['saldo'])} meses")
+                if 'TOTAL CONTROLE APROVADO' in primeira_col_limpa or 'APROVADO' in primeira_col_limpa:
+                    for col in mes_cols:
+                        if col in row.index:
+                            totais["aprovado"][col] = self._converter_valor_monetario(row[col])
+                    logger.info(f"✅ Totais mensais aprovados: {len(totais['aprovado'])} meses")
+                    
+                elif 'TOTAL CONTROLE UTILIZADO' in primeira_col_limpa or 'UTILIZADO' in primeira_col_limpa:
+                    for col in mes_cols:
+                        if col in row.index:
+                            totais["utilizado"][col] = self._converter_valor_monetario(row[col])
+                    logger.info(f"✅ Totais mensais utilizados: {len(totais['utilizado'])} meses")
+                    
+                elif 'TOTAL SALDO POSITIVO' in primeira_col_limpa or 'SALDO' in primeira_col_limpa:
+                    for col in mes_cols:
+                        if col in row.index:
+                            totais["saldo"][col] = self._converter_valor_monetario(row[col])
+                    logger.info(f"✅ Totais mensais saldo: {len(totais['saldo'])} meses")
             
             return totais
             
