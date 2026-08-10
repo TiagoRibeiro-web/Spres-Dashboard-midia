@@ -512,10 +512,7 @@ class GraphClient:
     def get_big_numbers(self) -> Dict[str, float]:
         """
         Extrai os Big Numbers da planilha.
-        Procura pelas linhas:
-        - "TOTAL CONTROLE APROVADO"
-        - "TOTAL CONTROLE UTILIZADO" 
-        - "TOTAL SALDO POSITIVO"
+        Busca por palavras-chave em vez de texto exato.
         """
         try:
             df_controle = self.load_worksheet("controle")
@@ -539,15 +536,16 @@ class GraphClient:
             for idx, row in df_controle.iterrows():
                 primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
                 
-                if "TOTAL CONTROLE APROVADO" in primeira_col:
+                # ===== BUSCA POR PALAVRAS-CHAVE (MAIS FLEXÍVEL) =====
+                if 'APROV' in primeira_col or 'APROVADO' in primeira_col:
                     big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
                     logger.info(f"Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
                     
-                elif "TOTAL CONTROLE UTILIZADO" in primeira_col:
+                elif 'UTILIZ' in primeira_col or 'UTILIZADO' in primeira_col:
                     big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
                     logger.info(f"Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
                     
-                elif "TOTAL SALDO POSITIVO" in primeira_col:
+                elif 'SALDO' in primeira_col or 'POSITIVO' in primeira_col:
                     big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
                     logger.info(f"Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
             
@@ -564,6 +562,7 @@ class GraphClient:
     def get_totais_mensais(self) -> Dict[str, Dict[str, float]]:
         """
         Extrai totais mensais de Aprovado, Utilizado e Saldo.
+        Busca por palavras-chave em vez de texto exato.
         """
         try:
             df_controle = self.load_worksheet("controle")
@@ -574,7 +573,7 @@ class GraphClient:
             df_controle = self._padronizar_colunas_controle(df_controle)
             
             meses = ['fev/26', 'mar/26', 'abr/26', 'mai/26', 'jun/26',
-                     'jul/26', 'ago/26', 'set/26', 'out/26', 'nov/26', 'dez/26', 'jan/27']
+                    'jul/26', 'ago/26', 'set/26', 'out/26', 'nov/26', 'dez/26', 'jan/27']
             
             mes_cols = [col for col in meses if col in df_controle.columns]
             
@@ -591,19 +590,20 @@ class GraphClient:
             for idx, row in df_controle.iterrows():
                 primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
                 
-                if "TOTAL CONTROLE APROVADO" in primeira_col:
+                # ===== BUSCA POR PALAVRAS-CHAVE =====
+                if 'APROV' in primeira_col or 'APROVADO' in primeira_col:
                     for col in mes_cols:
                         if col in row.index:
                             totais["aprovado"][col] = self._converter_valor_monetario(row[col])
                     logger.info(f"Totais mensais aprovados: {len(totais['aprovado'])} meses")
                         
-                elif "TOTAL CONTROLE UTILIZADO" in primeira_col:
+                elif 'UTILIZ' in primeira_col or 'UTILIZADO' in primeira_col:
                     for col in mes_cols:
                         if col in row.index:
                             totais["utilizado"][col] = self._converter_valor_monetario(row[col])
                     logger.info(f"Totais mensais utilizados: {len(totais['utilizado'])} meses")
                         
-                elif "TOTAL SALDO POSITIVO" in primeira_col:
+                elif 'SALDO' in primeira_col or 'POSITIVO' in primeira_col:
                     for col in mes_cols:
                         if col in row.index:
                             totais["saldo"][col] = self._converter_valor_monetario(row[col])

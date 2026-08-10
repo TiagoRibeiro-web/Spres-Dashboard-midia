@@ -256,11 +256,13 @@ class ExcelIntegration:
         
         for idx, row in df_controle.iterrows():
             desc = str(row.iloc[0]).upper() if row.iloc[0] else ''
-            if 'TOTAL CONTROLE APROVADO' in desc:
+            
+            # ===== BUSCA POR PALAVRAS-CHAVE =====
+            if 'APROV' in desc or 'APROVADO' in desc:
                 big_numbers['total_controle_aprovado'] = self._converter_valor(row.iloc[-1])
-            elif 'TOTAL CONTROLE UTILIZADO' in desc:
+            elif 'UTILIZ' in desc or 'UTILIZADO' in desc:
                 big_numbers['total_controle_utilizado'] = self._converter_valor(row.iloc[-1])
-            elif 'TOTAL SALDO POSITIVO' in desc:
+            elif 'SALDO' in desc or 'POSITIVO' in desc:
                 big_numbers['total_saldo_positivo'] = self._converter_valor(row.iloc[-1])
         
         return big_numbers
