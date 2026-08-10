@@ -1,0 +1,4 @@
+# .streamlit/config.toml
+[runner]
+# Força a versão do Python
+pythonVersion = "3.12"
