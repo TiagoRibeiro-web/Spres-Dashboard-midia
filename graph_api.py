@@ -533,9 +533,9 @@ class GraphClient:
             # ===== DEFINIÇÃO DE PALAVRAS-CHAVE =====
             # Quanto mais palavras-chave, mais robusto
             keywords = {
-                "aprovado": ["APROV", "APROVADO", "APROV.", "APROVADO"],
-                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "UTILIZADO"],
-                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO"]
+                "aprovado": ["APROV", "APROVADO", "APROV.", "APROVADO","Total Controle Aprovado"],
+                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "UTILIZADO","Total Controle Utilizado"],
+                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO","Total Saldo Positivo"]
             }
             
             # ===== PERCORRE TODAS AS LINHAS =====
