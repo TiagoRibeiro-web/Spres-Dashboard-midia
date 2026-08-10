@@ -461,36 +461,58 @@ class GraphClient:
             return df
         
         meses = ['fev/26', 'mar/26', 'abr/26', 'mai/26', 'jun/26',
-                 'jul/26', 'ago/26', 'set/26', 'out/26', 'nov/26', 'dez/26', 'jan/27']
+                'jul/26', 'ago/26', 'set/26', 'out/26', 'nov/26', 'dez/26', 'jan/27']
+        
+        # ===== MAPEAMENTO EXPLÍCITO POR POSIÇÃO =====
+        # As colunas do Excel são:
+        # Col 0: Veículo
+        # Col 1: Canal_Campanha
+        # Col 2: Observação
+        # Col 3 a 14: Meses (fev/26 a jan/27)
+        # Col 15: Total (se existir)
         
         colunas_mapeadas = {}
         
         for idx, col in enumerate(df.columns):
             col_str = str(col).strip().lower()
             
+            # Mapeamento por posição (mais confiável)
             if idx == 0:
                 colunas_mapeadas[col] = 'veiculo'
             elif idx == 1:
                 colunas_mapeadas[col] = 'canal'
             elif idx == 2:
                 colunas_mapeadas[col] = 'obs'
-            elif any(mes.replace('/', '') in col_str.replace('/', '') for mes in meses):
-                for mes in meses:
-                    if mes.replace('/', '') in col_str.replace('/', ''):
-                        colunas_mapeadas[col] = mes
-                        break
-            elif idx == len(df.columns) - 1:
+            elif idx >= 3 and idx <= 14:
+                # Colunas de meses (posição 3 = fev/26, 4 = mar/26, ...)
+                mes_idx = idx - 3
+                if mes_idx < len(meses):
+                    colunas_mapeadas[col] = meses[mes_idx]
+            elif idx == 15:
                 colunas_mapeadas[col] = 'total'
+            else:
+                # Fallback: tenta identificar pelo nome
+                if any(mes.replace('/', '') in col_str.replace('/', '') for mes in meses):
+                    for mes in meses:
+                        if mes.replace('/', '') in col_str.replace('/', ''):
+                            colunas_mapeadas[col] = mes
+                            break
+                elif col_str == 'total':
+                    colunas_mapeadas[col] = 'total'
         
+        # Aplica o mapeamento
         df = df.rename(columns=colunas_mapeadas)
         
+        # Mantém apenas as colunas que temos mapeamento
         colunas_manter = ['veiculo', 'canal', 'obs'] + meses + ['total']
         df = df[[col for col in colunas_manter if col in df.columns]]
         
+        # Garante que todos os meses existam
         for mes in meses:
             if mes not in df.columns:
                 df[mes] = 0.0
         
+        # Converte colunas de meses para numérico
         for mes in meses:
             if mes in df.columns:
                 try:
@@ -499,6 +521,7 @@ class GraphClient:
                     logger.warning(f"Erro ao converter mês {mes}: {str(e)}")
                     df[mes] = 0.0
         
+        # Calcula total se não existir
         if 'total' not in df.columns:
             try:
                 df['total'] = df[meses].sum(axis=1)
@@ -510,7 +533,10 @@ class GraphClient:
         return df
     
     def get_big_numbers(self) -> Dict[str, float]:
-   
+        """
+        Extrai os Big Numbers da planilha.
+        Busca por palavras-chave em TODAS as linhas.
+        """
         try:
             df_controle = self.load_worksheet("controle")
             
@@ -524,11 +550,8 @@ class GraphClient:
             
             df_controle = self._padronizar_colunas_controle(df_controle)
             
-            # ===== DEBUG: Mostra todas as linhas =====
-            logger.info("🔍 Procurando linhas de total...")
-            for idx, row in df_controle.iterrows():
-                if pd.notna(row['veiculo']):
-                    logger.info(f"  Linha {idx}: {str(row['veiculo'])[:50]}...")
+            # ===== DEBUG: Mostra as colunas =====
+            logger.info(f"📋 Colunas disponíveis: {list(df_controle.columns)}")
             
             big_numbers = {
                 "total_controle_aprovado": 0,
@@ -536,28 +559,26 @@ class GraphClient:
                 "total_saldo_positivo": 0
             }
             
-            # ===== PALAVRAS-CHAVE MAIS FLEXÍVEIS =====
+            # ===== PERCORRE TODAS AS LINHAS =====
             for idx, row in df_controle.iterrows():
                 if pd.isna(row['veiculo']):
                     continue
                     
                 primeira_col = str(row['veiculo']).strip().upper()
                 
-                # Remove espaços extras e caracteres especiais para comparação
-                primeira_col_limpa = ' '.join(primeira_col.split())
-                
-                # ===== BUSCA EXATA COM PALAVRAS-CHAVE =====
-                if 'TOTAL CONTROLE APROVADO' in primeira_col_limpa or 'APROVADO' in primeira_col_limpa:
-                    big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
-                    logger.info(f"✅ Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
-                    
-                elif 'TOTAL CONTROLE UTILIZADO' in primeira_col_limpa or 'UTILIZADO' in primeira_col_limpa:
-                    big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
-                    logger.info(f"✅ Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
-                    
-                elif 'TOTAL SALDO POSITIVO' in primeira_col_limpa or 'SALDO' in primeira_col_limpa:
-                    big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
-                    logger.info(f"✅ Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
+                # ===== BUSCA POR PALAVRAS-CHAVE =====
+                if 'TOTAL' in primeira_col or 'TOTALE' in primeira_col:
+                    if 'APROV' in primeira_col:
+                        big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
+                        logger.info(f"✅ Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
+                        
+                    elif 'UTILIZ' in primeira_col:
+                        big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
+                        logger.info(f"✅ Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
+                        
+                    elif 'SALDO' in primeira_col:
+                        big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
+                        logger.info(f"✅ Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
             
             return big_numbers
             
