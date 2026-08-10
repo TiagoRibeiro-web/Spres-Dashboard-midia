@@ -103,3 +103,10 @@ $RECYCLE.BIN/
 # Linux
 *~
 .nfs*
+
+# .gitignore
+.streamlit/secrets.toml
+.env
+*.pyc
+__pycache__/
+.venv/
