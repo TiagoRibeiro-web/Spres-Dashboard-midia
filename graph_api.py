@@ -28,11 +28,27 @@ def initialize_graph():
         _initialized = True
 
 # ============================================
-# CARREGAR VARIÁVEIS DE AMBIENTE
+# CARREGAR VARIÁVEIS DE AMBIENTE / SECRETS
 # ============================================
 from dotenv import load_dotenv
 
-# Tenta carregar o .env de diferentes locais
+def get_secret(key, default=None):
+    """Obtém uma variável do secrets.toml (Cloud) ou .env (local)"""
+    # Tenta do secrets.toml (Streamlit Cloud)
+    try:
+        if hasattr(st, 'secrets') and key in st.secrets:
+            return st.secrets[key]
+    except:
+        pass
+    
+    # Tenta do .env (desenvolvimento local)
+    value = os.getenv(key)
+    if value is not None:
+        return value
+    
+    return default
+
+# Tenta carregar o .env de diferentes locais (apenas para desenvolvimento local)
 env_paths = [
     ".env",
     os.path.join(os.path.dirname(__file__), ".env"),
@@ -60,12 +76,13 @@ logger = logging.getLogger(__name__)
 # ============================================
 class GraphConfig:
     """Configurações da Microsoft Graph API"""
-    TENANT_ID = os.getenv("AZURE_TENANT_ID", "")
-    CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "")
-    CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET", "")
-    SHAREPOINT_SITE_URL = os.getenv("SHAREPOINT_SITE_URL", "")
-    EXCEL_FILENAME = os.getenv("EXCEL_FILENAME", "base_spres_projeto_refatorada.xlsx")
-    CACHE_MINUTES = int(os.getenv("CACHE_MINUTES", "30"))
+    # AGORA USA get_secret() em vez de os.getenv()
+    TENANT_ID = get_secret("AZURE_TENANT_ID", "")
+    CLIENT_ID = get_secret("AZURE_CLIENT_ID", "")
+    CLIENT_SECRET = get_secret("AZURE_CLIENT_SECRET", "")
+    SHAREPOINT_SITE_URL = get_secret("SHAREPOINT_SITE_URL", "")
+    EXCEL_FILENAME = get_secret("EXCEL_FILENAME", "base_spres_projeto_refatorada.xlsx")
+    CACHE_MINUTES = int(get_secret("CACHE_MINUTES", "30"))
     
     # Mapeamento de abas e ranges do Excel
     WORKSHEET_MAPPING = {
