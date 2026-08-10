@@ -510,7 +510,7 @@ class GraphClient:
         return df
     
     def get_big_numbers(self) -> Dict[str, float]:
-       
+        
         try:
             df_controle = self.load_worksheet("controle")
             
@@ -524,18 +524,23 @@ class GraphClient:
             
             df_controle = self._padronizar_colunas_controle(df_controle)
             
+            # ===== DEBUG: Mostra todas as linhas =====
+            logger.info("🔍 Procurando linhas de total...")
+            for idx, row in df_controle.iterrows():
+                if pd.notna(row['veiculo']):
+                    logger.info(f"  Linha {idx}: {str(row['veiculo'])[:50]}...")
+            
             big_numbers = {
                 "total_controle_aprovado": 0,
                 "total_controle_utilizado": 0,
                 "total_saldo_positivo": 0
             }
             
-            # ===== DEFINIÇÃO DE PALAVRAS-CHAVE =====
-            # Quanto mais palavras-chave, mais robusto
+            # ===== PALAVRAS-CHAVE MAIS AMPLAS =====
             keywords = {
-                "aprovado": ["APROV", "APROVADO", "APROV.", "APROVADO","Total Controle Aprovado"],
-                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "UTILIZADO","Total Controle Utilizado"],
-                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO","Total Saldo Positivo"]
+                "aprovado": ["APROV", "APROVADO", "APROV.", "APROVADO", "TOTAL CONTROLE APROV", "TOTAL CONTROLE APROVADO"],
+                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "UTILIZADO", "TOTAL CONTROLE UTILIZ", "TOTAL CONTROLE UTILIZADO"],
+                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO", "TOTAL SALDO POSITIVO"]
             }
             
             # ===== PERCORRE TODAS AS LINHAS =====
@@ -556,29 +561,33 @@ class GraphClient:
                         big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
                         logger.info(f"✅ Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
             
-            # ===== FALLBACK: Se não encontrou, tenta sem "TOTAL" =====
+            # ===== FALLBACK: Busca por posição (últimas 5 linhas) =====
             if big_numbers["total_controle_aprovado"] == 0:
-                for idx, row in df_controle.iterrows():
-                    primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
-                    if any(kw in primeira_col for kw in keywords["aprovado"]):
+                # Procura nas últimas 10 linhas por "APROV"
+                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 10), -1):
+                    row = df_controle.iloc[idx]
+                    desc = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
+                    if 'APROV' in desc or 'APROVADO' in desc:
                         big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ (Fallback) Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
+                        logger.info(f"✅ (Fallback posição) Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
                         break
             
             if big_numbers["total_controle_utilizado"] == 0:
-                for idx, row in df_controle.iterrows():
-                    primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
-                    if any(kw in primeira_col for kw in keywords["utilizado"]):
+                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 10), -1):
+                    row = df_controle.iloc[idx]
+                    desc = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
+                    if 'UTILIZ' in desc or 'UTILIZADO' in desc:
                         big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ (Fallback) Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
+                        logger.info(f"✅ (Fallback posição) Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
                         break
             
             if big_numbers["total_saldo_positivo"] == 0:
-                for idx, row in df_controle.iterrows():
-                    primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
-                    if any(kw in primeira_col for kw in keywords["saldo"]):
+                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 10), -1):
+                    row = df_controle.iloc[idx]
+                    desc = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
+                    if 'SALDO' in desc or 'POSITIVO' in desc:
                         big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ (Fallback) Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
+                        logger.info(f"✅ (Fallback posição) Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
                         break
             
             return big_numbers
@@ -592,7 +601,6 @@ class GraphClient:
             }
     
     def get_totais_mensais(self) -> Dict[str, Dict[str, float]]:
-    
         try:
             df_controle = self.load_worksheet("controle")
             
@@ -611,9 +619,9 @@ class GraphClient:
                 return {}
             
             keywords = {
-                "aprovado": ["APROV", "APROVADO", "APROV.","Total Controle Aprovado"],
-                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.","Total Controle Utilizado"],
-                "saldo": ["SALDO", "POSITIVO","Total Saldo Positivo"]
+                "aprovado": ["APROV", "APROVADO", "APROV.", "TOTAL CONTROLE APROV"],
+                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.", "TOTAL CONTROLE UTILIZ"],
+                "saldo": ["SALDO", "POSITIVO", "SALDO POSITIVO"]
             }
             
             totais = {
@@ -622,7 +630,6 @@ class GraphClient:
                 "saldo": {}
             }
             
-            # ===== PERCORRE TODAS AS LINHAS =====
             for idx, row in df_controle.iterrows():
                 primeira_col = str(row['veiculo']).strip().upper() if pd.notna(row['veiculo']) else ''
                 
