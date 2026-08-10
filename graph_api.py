@@ -611,9 +611,9 @@ class GraphClient:
                 return {}
             
             keywords = {
-                "aprovado": ["APROV", "APROVADO", "APROV."],
-                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ."],
-                "saldo": ["SALDO", "POSITIVO"]
+                "aprovado": ["APROV", "APROVADO", "APROV.","Total Controle Aprovado"],
+                "utilizado": ["UTILIZ", "UTILIZADO", "UTILIZ.","Total Controle Utilizado"],
+                "saldo": ["SALDO", "POSITIVO","Total Saldo Positivo"]
             }
             
             totais = {
