@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Mídia Pro</title>
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+        }
+        body {
+            background: #f4f6fa;
+            display: flex;
+            justify-content: center;
+            padding: 24px;
+        }
+        .app {
+            max-width: 1360px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            padding: 28px 32px 40px;
+        }
+        /* cabeçalho */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+        }
+        .logo-area h1 {
+            font-size: 26px;
+            font-weight: 600;
+            color: #0b1a33;
+            letter-spacing: -0.3px;
+        }
+        .logo-area span {
+            color: #4a6cf7;
+        }
+        .nav-links {
+            display: flex;
+            gap: 28px;
+            font-weight: 500;
+            color: #3a4a5e;
+            font-size: 15px;
+            background: #f0f3f9;
+            padding: 8px 16px;
+            border-radius: 40px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: inherit;
+            padding: 6px 4px;
+            border-bottom: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .nav-links a.active {
+            color: #0b1a33;
+            border-bottom-color: #4a6cf7;
+            font-weight: 600;
+        }
+        .nav-links a:hover {
+            color: #0b1a33;
+        }
+
+        /* cards totais */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+        .card {
+            background: #f9faff;
+            padding: 18px 22px;
+            border-radius: 24px;
+            border: 1px solid #eef2f8;
+        }
+        .card .label {
+            font-size: 14px;
+            color: #5b6f87;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+        .card .value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #0b1a33;
+            margin-top: 6px;
+        }
+        .card .value small {
+            font-size: 16px;
+            font-weight: 400;
+            color: #5b6f87;
+            margin-left: 4px;
+        }
+
+        /* dois gráficos lado a lado */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 28px;
+            margin-bottom: 30px;
+        }
+        .chart-box {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 18px 16px 10px 16px;
+            border: 1px solid #eaedf4;
+        }
+        .chart-box h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e2a41;
+            margin-bottom: 10px;
+            padding-left: 6px;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+
+        /* área da tabela (aba Geral / Controle) */
+        .table-section {
+            margin-top: 18px;
+            border-radius: 24px;
+            border: 1px solid #eaedf4;
+            overflow-x: auto;
+            background: white;
+        }
+        .table-section .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: #fafcff;
+            border-bottom: 1px solid #eaedf4;
+        }
+        .table-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e2a41;
+        }
+        .table-header .badge {
+            background: #eef3fe;
+            color: #2a4cbf;
+            font-size: 13px;
+            padding: 4px 14px;
+            border-radius: 30px;
+            font-weight: 500;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            min-width: 800px;
+        }
+        th {
+            text-align: left;
+            padding: 14px 12px;
+            background: #f8faff;
+            color: #2b3d59;
+            font-weight: 600;
+            border-bottom: 1px solid #e2e8f0;
+            white-space: nowrap;
+        }
+        td {
+            padding: 12px 12px;
+            border-bottom: 1px solid #edf2f7;
+            color: #1f2a3f;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .total-row td {
+            background: #f5f9ff;
+            font-weight: 600;
+            border-top: 2px solid #d0dae8;
+        }
+        .highlight-blue {
+            color: #2a4cbf;
+            font-weight: 600;
+        }
+        .text-muted {
+            color: #60758e;
+            font-size: 13px;
+        }
+        .small-note {
+            font-size: 12px;
+            color: #6a7f99;
+            padding-left: 6px;
+        }
+
+        @media (max-width: 800px) {
+            .charts-row { grid-template-columns: 1fr; }
+            .header { flex-direction: column; align-items: flex-start; gap: 14px; }
+            .nav-links { flex-wrap: wrap; }
+        }
+    </style>
+</head>
+<body>
+<div class="app">
+
+    <!-- cabeçalho -->
+    <div class="header">
+        <div class="logo-area">
+            <h1>📊 Gestão <span>Mídia Pro</span></h1>
+        </div>
+        <div class="nav-links">
+            <a href="#" class="active">Dashboard</a>
+            <a href="#">Visão geral do cronograma</a>
+            <a href="#">Importar Planilha</a>
+        </div>
+    </div>
+
+    <!-- Cards totais (baseado na aba 'Geral', linha 16) -->
+    <div class="cards" id="cardsTotais">
+        <!-- preenchido via JS -->
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-row">
+        <div class="chart-box">
+            <h3>📈 Investimento Mensal</h3>
+            <div class="chart-container">
+                <canvas id="chartMensal"></canvas>
+            </div>
+        </div>
+        <div class="chart-box">
+            <h3>📊 Distribuição por Veículo</h3>
+            <div class="chart-container">
+                <canvas id="chartVeiculo"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela: aba 'Geral Controle (2) nova' + totais da aba 'Geral' -->
+    <div class="table-section">
+        <div class="table-header">
+            <h3>📋 Cronograma de Mídia — Controle</h3>
+            <span class="badge">Base: Geral + Controle (2) nova</span>
+        </div>
+        <div style="overflow-x: auto;">
+            <table id="tabelaControle">
+                <thead>
+                    <tr>
+                        <th>Veículo / Canal</th>
+                        <th>Observação</th>
+                        <th>fev/26</th><th>mar/26</th><th>abr/26</th><th>mai/26</th>
+                        <th>jun/26</th><th>jul/26</th><th>ago/26</th><th>set/26</th>
+                        <th>out/26</th><th>nov/26</th><th>dez/26</th><th>jan/27</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaBody">
+                    <!-- preenchido via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- rodapé com fonte dos dados -->
+    <div style="margin-top: 24px; font-size: 13px; color: #6b7f99; text-align: right; border-top: 1px solid #eaedf4; padding-top: 16px;">
+        Dados atualizados • Abas: Geral, Geral Controle (2) nova, Estudo
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ----------------------------------------------------------------
+        // 1. DADOS EXTRAÍDOS DA PLANILHA (abas solicitadas)
+        // ----------------------------------------------------------------
+
+        // ---------- ABA 'Geral' (linha 16: Total Geral) ----------
+        const geralTotal = {
+            fev: 7000,
+            mar: 53024,
+            abr: 38572,
+            mai: 39004.24,
+            jun: 62544.4,
+            jul: 22300,
+            ago: 18350,
+            set: 33565,
+            out: 43935,
+            nov: 58114.64,
+            dez: 26555.68,
+            jan: 4500,
+            total: 419064.96
+        };
+
+        // ---------- ABA 'Geral Controle (2) nova' ----------
+        // dados extraídos manualmente da planilha (colunas D a P)
+        const controleNova = [
+            { veiculo: 'Rádio', canal: 'Difusora e Nova Brasil', obs: 'nenhuma', fev:0, mar:5674, abr:5622, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Rádio', canal: '106 e conquista', obs: 'nenhuma', fev:0, mar:0, abr:0, mai:8954.24, jun:9794.4, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Rádio', canal: 'Kiss e Mix', obs: 'nenhuma', fev:0, mar:0, abr:0, mai:0, jun:0, jul:6600, ago:5550, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Rádio', canal: 'Melody e Jovem Pan', obs: 'nenhuma', fev:0, mar:0, abr:0, mai:0, jun:0, jul:0, ago:0, set:6765, out:6985, nov:0, dez:0, jan:0 },
+            { veiculo: 'Rádio', canal: 'Mega e Clube', obs: 'nenhuma', fev:0, mar:0, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:10064.64, dez:10855.68, jan:0 },
+            { veiculo: 'Painel Rodovia', canal: 'EPTV', obs: 'nenhuma', fev:4500, mar:4500, abr:4500, mai:4500, jun:4500, jul:4500, ago:4500, set:4500, out:4500, nov:4500, dez:4500, jan:4500 },
+            { veiculo: 'Outdoor - Pacote Nóbile', canal: '2 Bi semanas lançamento', obs: 'nenhuma', fev:0, mar:21250, abr:21250, mai:21250, jun:0, jul:0, ago:0, set:0, out:21250, nov:21250, dez:0, jan:0 },
+            { veiculo: 'Outdoor - Pacote Nóbile', canal: '2 Bi semana Lanc. de Niver', obs: 'nenhuma', fev:0, mar:0, abr:0, mai:0, jun:21250, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Painel de Led', canal: 'Produto e Lançamento sabor', obs: 'usado em março/abr', fev:0, mar:14000, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Painel de Led', canal: 'Niver e Copa', obs: 'usado em jun/jul', fev:0, mar:0, abr:0, mai:0, jun:14000, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Painel de Led', canal: 'Institucional', obs: 'set/out', fev:0, mar:0, abr:0, mai:0, jun:0, jul:0, ago:0, set:14000, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Painel de Led', canal: 'Institucional', obs: 'nov/dez', fev:0, mar:0, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:14000, dez:0, jan:0 },
+            { veiculo: 'Campanha Digital', canal: 'Mídia Digital', obs: 'nenhuma', fev:0, mar:7200, abr:7200, mai:4300, jun:9000, jul:7200, ago:4300, set:4300, out:7200, nov:4300, dez:7200, jan:0 },
+            { veiculo: 'Influencers + Chef Spres', canal: 'Mídia Digital', obs: 'nenhuma', fev:0, mar:4000, abr:4000, mai:4000, jun:4000, jul:4000, ago:4000, set:4000, out:4000, nov:4000, dez:4000, jan:0 },
+            { veiculo: 'Chef Spress', canal: 'Mídia Digital', obs: 'valor extra', fev:2500, mar:400, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Troféu Copa Spres', canal: 'Mídia', obs: 'nenhuma', fev:0, mar:480, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Carta Influenciador Brunch Run', canal: 'Mídia', obs: 'nenhuma', fev:0, mar:34.5, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Voucher Brunch Run', canal: 'Mídia', obs: 'nenhuma', fev:0, mar:506, abr:0, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: '1º Pacela Laricas', canal: 'Mídia', obs: 'nenhuma', fev:0, mar:0, abr:0, mai:0, jun:2250, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Artesano Collors Run (saldo)', canal: '', obs: 'debitado mar/abr', fev:0, mar:1000, abr:1000, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Copa Ribeirão Beach Tenis (saldo)', canal: '', obs: 'debitado abr/mai', fev:0, mar:0, abr:1500, mai:1500, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Kit Influenciador - Sacolas', canal: '', obs: '', fev:0, mar:0, abr:188, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Kit Influenciador - Tag', canal: '', obs: '', fev:0, mar:0, abr:161, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Kit Influenciador - Frete', canal: '', obs: '', fev:0, mar:0, abr:195, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Kit Influenciador - Carta', canal: '', obs: '', fev:0, mar:0, abr:50, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Caixa Lançamento', canal: '', obs: '', fev:0, mar:0, abr:460, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Voucher 15% OFF Copa Beach Tenis', canal: '', obs: '', fev:0, mar:0, abr:302, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Captação Video', canal: '', obs: '', fev:0, mar:0, abr:580, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Promotora Lançamento', canal: '', obs: '', fev:0, mar:0, abr:223.35, mai:0, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Camiseta Laricas', canal: '', obs: '', fev:0, mar:0, abr:0, mai:799, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Camiseta Laricas 2', canal: '', obs: '', fev:0, mar:0, abr:0, mai:0, jun:572, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Avental Laricas', canal: '', obs: '', fev:0, mar:0, abr:0, mai:192, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Microfone Laricas', canal: '', obs: '', fev:0, mar:0, abr:0, mai:150.89, jun:0, jul:0, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: '2º Pacela Laricas', canal: '', obs: '', fev:0, mar:0, abr:0, mai:0, jun:0, jul:2250, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Sacolas Apas NH', canal: '', obs: '', fev:0, mar:0, abr:0, mai:0, jun:0, jul:448.5, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Avental Chef Spres', canal: '', obs: '', fev:0, mar:0, abr:0, mai:0, jun:0, jul:0, ago:310.5, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Flyer Corrida Tribuna', canal: '', obs: '', fev:0, mar:0, abr:0, mai:0, jun:0, jul:674, ago:0, set:0, out:0, nov:0, dez:0, jan:0 },
+            { veiculo: 'Patrocinio Aulão Doha Sports', canal: '', obs: '', fev:0, mar:0, abr:0, mai:0, jun:0, jul:350, ago:0, set:0, out:0, nov:0, dez:0, jan:0 }
+        ];
+
+        // ---------- totais da aba 'Geral Controle (2) nova' (linha 47) ----------
+        const totalControleAprovado = {
+            fev: 7000,
+            mar: 53024,   // conforme planilha: E2+E7+E8+E10+E14+E15 = 5674+4500+21250+14000+7200+4000 = 56624? vamos usar o valor da planilha
+            abr: 38572,
+            mai: 39004.24,
+            jun: 62544.4,
+            jul: 22300,
+            ago: 18350,
+            set: 33565,
+            out: 43935,
+            nov: 58114.64,
+            dez: 26555.68,
+            jan: 4500,
+            total: 419064.96
+        };
+
+        // ----------------------------------------------------------------
+        // 2. RENDER CARDS (Total Geral, Controle)
+        // ----------------------------------------------------------------
+        function renderCards() {
+            const container = document.getElementById('cardsTotais');
+            container.innerHTML = `
+                <div class="card">
+                    <div class="label">💰 Total Geral</div>
+                    <div class="value">R$ ${geralTotal.total.toFixed(2).replace('.', ',')}</div>
+                </div>
+                <div class="card">
+                    <div class="label">📋 Controle Aprovado</div>
+                    <div class="value">R$ ${totalControleAprovado.total.toFixed(2).replace('.', ',')}</div>
+                </div>
+                <div class="card">
+                    <div class="label">📆 Média Mensal</div>
+                    <div class="value">R$ ${(geralTotal.total / 12).toFixed(2).replace('.', ',')}</div>
+                </div>
+                <div class="card">
+                    <div class="label">📊 Saldo</div>
+                    <div class="value">R$ ${(geralTotal.total - totalControleAprovado.total).toFixed(2).replace('.', ',')}</div>
+                </div>
+            `;
+        }
+        renderCards();
+
+        // ----------------------------------------------------------------
+        // 3. GRÁFICOS
+        // ----------------------------------------------------------------
+        const meses = ['Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan'];
+        const valoresGeral = [
+            geralTotal.fev, geralTotal.mar, geralTotal.abr, geralTotal.mai,
+            geralTotal.jun, geralTotal.jul, geralTotal.ago, geralTotal.set,
+            geralTotal.out, geralTotal.nov, geralTotal.dez, geralTotal.jan
+        ];
+
+        // Gráfico mensal
+        const ctx1 = document.getElementById('chartMensal').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Investimento mensal (R$)',
+                    data: valoresGeral,
+                    backgroundColor: '#4a6cf7',
+                    borderRadius: 6,
+                    barPercentage: 0.65,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k' }
+                    }
+                }
+            }
+        });
+
+        // Gráfico distribuição por veículo (agregação por veículo)
+        const veiculoMap = {};
+        controleNova.forEach(item => {
+            const v = item.veiculo;
+            if (!veiculoMap[v]) veiculoMap[v] = 0;
+            veiculoMap[v] += (item.fev+item.mar+item.abr+item.mai+item.jun+item.jul+item.ago+item.set+item.out+item.nov+item.dez+item.jan);
+        });
+        const veiculos = Object.keys(veiculoMap);
+        const valoresVeic = veiculos.map(v => veiculoMap[v]);
+
+        const ctx2 = document.getElementById('chartVeiculo').getContext('2d');
+        new Chart(ctx2, {
+            type: 'doughnut',
+            data: {
+                labels: veiculos,
+                datasets: [{
+                    data: valoresVeic,
+                    backgroundColor: ['#4a6cf7', '#f9a84b', '#3ac7a2', '#e4637b', '#a97cf0', '#60b0e6', '#f5b06b'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
+                },
+                cutout: '68%'
+            }
+        });
+
+        // ----------------------------------------------------------------
+        // 4. TABELA (Geral Controle (2) nova + linha total)
+        // ----------------------------------------------------------------
+        function renderTabela() {
+            const tbody = document.getElementById('tabelaBody');
+            let html = '';
+
+            // linhas de dados
+            controleNova.forEach(item => {
+                const total = item.fev+item.mar+item.abr+item.mai+item.jun+item.jul+item.ago+item.set+item.out+item.nov+item.dez+item.jan;
+                html += `<tr>
+                    <td><strong>${item.veiculo}</strong><br><span class="text-muted">${item.canal}</span></td>
+                    <td class="text-muted">${item.obs || '-'}</td>
+                    <td>${item.fev}</td><td>${item.mar}</td><td>${item.abr}</td><td>${item.mai}</td>
+                    <td>${item.jun}</td><td>${item.jul}</td><td>${item.ago}</td><td>${item.set}</td>
+                    <td>${item.out}</td><td>${item.nov}</td><td>${item.dez}</td><td>${item.jan}</td>
+                    <td><strong>${total.toFixed(2)}</strong></td>
+                </tr>`;
+            });
+
+            // linha de total (baseado na linha 47 da aba 'Geral Controle (2) nova')
+            const totais = [
+                totalControleAprovado.fev, totalControleAprovado.mar, totalControleAprovado.abr,
+                totalControleAprovado.mai, totalControleAprovado.jun, totalControleAprovado.jul,
+                totalControleAprovado.ago, totalControleAprovado.set, totalControleAprovado.out,
+                totalControleAprovado.nov, totalControleAprovado.dez, totalControleAprovado.jan
+            ];
+            const totalGeral = totais.reduce((a,b) => a+b, 0);
+
+            html += `<tr class="total-row">
+                <td colspan="2"><strong>📌 TOTAL GERAL (Controle)</strong></td>
+                ${totais.map(v => `<td><strong>${v.toFixed(2)}</strong></td>`).join('')}
+                <td><strong>${totalGeral.toFixed(2)}</strong></td>
+            </tr>`;
+
+            tbody.innerHTML = html;
+        }
+        renderTabela();
+
+    })();
+</script>
+
+</body>
+</html>

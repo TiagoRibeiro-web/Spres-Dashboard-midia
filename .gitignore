@@ -1,0 +1,105 @@
+# ============================================
+# PYTHON / STREAMLIT
+# ============================================
+
+# Ambiente virtual
+venv/
+env/
+.env
+.venv/
+ENV/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pyc
+
+# Distribuição / build
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Testes
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Streamlit
+.streamlit/secrets.toml
+
+# ============================================
+# VARIÁVEIS DE AMBIENTE / SENSÍVEIS
+# ============================================
+
+# ⚠️ NUNCA suba o .env no Git!
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+
+# Secrets diversos
+*.pem
+*.key
+secrets.json
+credentials.json
+token.json
+
+# ============================================
+# DADOS / LOGS
+# ============================================
+
+# Arquivos temporários
+*.tmp
+*.temp
+*.log
+logs/
+
+# Downloads / uploads
+downloads/
+uploads/
+*.xlsx
+*.csv
+*.xls
+
+# ============================================
+# SISTEMA OPERACIONAL
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.nfs*
