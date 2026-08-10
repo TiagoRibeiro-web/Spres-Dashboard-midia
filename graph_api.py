@@ -87,7 +87,7 @@ class GraphConfig:
     # Mapeamento de abas e ranges do Excel
     WORKSHEET_MAPPING = {
         "geral": {"name": "GERAL", "range": "A1:M2"},
-        "controle": {"name": "GERAL CONTROLE (2) NOVA", "range": "A1:O50"},
+        "controle": {"name": "GERAL CONTROLE (2) NOVA", "range": "A1:O80"},
         "estudo": {"name": "ESTUDO", "range": "A1:M12"},
         "extra": {"name": "GERAL EXTRA", "range": "A1:N7"}
     }
@@ -550,8 +550,16 @@ class GraphClient:
             
             df_controle = self._padronizar_colunas_controle(df_controle)
             
-            # ===== DEBUG: Mostra as colunas =====
+            # ===== DEBUG: Mostra as colunas e total de linhas =====
+            logger.info(f"📋 Total de linhas carregadas: {len(df_controle)}")
             logger.info(f"📋 Colunas disponíveis: {list(df_controle.columns)}")
+            
+            # ===== DEBUG: Mostra as últimas 10 linhas =====
+            logger.info("🔍 Últimas 10 linhas:")
+            for idx in range(max(0, len(df_controle) - 10), len(df_controle)):
+                row = df_controle.iloc[idx]
+                if pd.notna(row['veiculo']):
+                    logger.info(f"  Linha {idx}: {str(row['veiculo'])[:50]}... | Total: {row['total']}")
             
             big_numbers = {
                 "total_controle_aprovado": 0,
@@ -570,15 +578,46 @@ class GraphClient:
                 if 'TOTAL' in primeira_col or 'TOTALE' in primeira_col:
                     if 'APROV' in primeira_col:
                         big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ Total Controle Aprovado: R$ {big_numbers['total_controle_aprovado']:,.2f}")
+                        logger.info(f"✅ Total Controle Aprovado (linha {idx}): R$ {big_numbers['total_controle_aprovado']:,.2f}")
                         
                     elif 'UTILIZ' in primeira_col:
                         big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ Total Controle Utilizado: R$ {big_numbers['total_controle_utilizado']:,.2f}")
+                        logger.info(f"✅ Total Controle Utilizado (linha {idx}): R$ {big_numbers['total_controle_utilizado']:,.2f}")
                         
                     elif 'SALDO' in primeira_col:
                         big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
-                        logger.info(f"✅ Total Saldo Positivo: R$ {big_numbers['total_saldo_positivo']:,.2f}")
+                        logger.info(f"✅ Total Saldo Positivo (linha {idx}): R$ {big_numbers['total_saldo_positivo']:,.2f}")
+            
+            # ===== FALLBACK: Procura nas últimas 20 linhas =====
+            if big_numbers["total_controle_aprovado"] == 0:
+                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 20), -1):
+                    row = df_controle.iloc[idx]
+                    if pd.notna(row['veiculo']):
+                        desc = str(row['veiculo']).strip().upper()
+                        if 'APROV' in desc:
+                            big_numbers["total_controle_aprovado"] = self._converter_valor_monetario(row['total'])
+                            logger.info(f"✅ (Fallback) Total Controle Aprovado (linha {idx}): R$ {big_numbers['total_controle_aprovado']:,.2f}")
+                            break
+            
+            if big_numbers["total_controle_utilizado"] == 0:
+                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 20), -1):
+                    row = df_controle.iloc[idx]
+                    if pd.notna(row['veiculo']):
+                        desc = str(row['veiculo']).strip().upper()
+                        if 'UTILIZ' in desc:
+                            big_numbers["total_controle_utilizado"] = self._converter_valor_monetario(row['total'])
+                            logger.info(f"✅ (Fallback) Total Controle Utilizado (linha {idx}): R$ {big_numbers['total_controle_utilizado']:,.2f}")
+                            break
+            
+            if big_numbers["total_saldo_positivo"] == 0:
+                for idx in range(len(df_controle) - 1, max(0, len(df_controle) - 20), -1):
+                    row = df_controle.iloc[idx]
+                    if pd.notna(row['veiculo']):
+                        desc = str(row['veiculo']).strip().upper()
+                        if 'SALDO' in desc:
+                            big_numbers["total_saldo_positivo"] = self._converter_valor_monetario(row['total'])
+                            logger.info(f"✅ (Fallback) Total Saldo Positivo (linha {idx}): R$ {big_numbers['total_saldo_positivo']:,.2f}")
+                            break
             
             return big_numbers
             
