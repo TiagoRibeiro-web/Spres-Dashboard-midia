@@ -49,24 +49,25 @@ except ImportError as e:
 # ============================================
 # CARREGAR VARIÁVEIS DE AMBIENTE / SECRETS
 # ============================================
+# Carrega .env local (apenas para desenvolvimento)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
+
 def get_secret(key, required=True):
-    """
-    Obtém uma variável do secrets.toml ou .env.
-    Primeiro tenta secrets.toml, depois .env, depois variáveis de ambiente.
-    """
-    # Tenta do secrets.toml
+    """Obtém uma variável do secrets.toml ou .env."""
     try:
         if hasattr(st, 'secrets') and key in st.secrets:
             return st.secrets[key]
     except:
         pass
     
-    # Tenta do .env (para desenvolvimento local)
     value = os.getenv(key)
     if value is not None:
         return value
     
-    # Se não encontrou e é obrigatório, levanta erro
     if required:
         st.error(f"❌ Configuração '{key}' não encontrada no secrets.toml ou .env")
         st.stop()
@@ -75,16 +76,17 @@ def get_secret(key, required=True):
 # ============================================
 # AUTENTICAÇÃO (APENAS SECRETS)
 # ============================================
-USUARIOS = get_secret("USERS", required=False)
+USUARIOS = get_secret("USERS", required=True)
 
-# Se não encontrou no secrets, usa fallback para desenvolvimento
+# Se USUARIOS for None, usa fallback
 if USUARIOS is None:
     USUARIOS = {
         "admin": "spres2026",
         "gestao": "midia2026"
     }
     print("⚠️ Usando credenciais padrão (modo desenvolvimento)")
-# Configurações do Azure (todas obrigatórias)
+
+# Configurações do Azure
 AZURE_TENANT_ID = get_secret("AZURE_TENANT_ID", required=True)
 AZURE_CLIENT_ID = get_secret("AZURE_CLIENT_ID", required=True)
 AZURE_CLIENT_SECRET = get_secret("AZURE_CLIENT_SECRET", required=True)
@@ -93,6 +95,14 @@ EXCEL_FILENAME = get_secret("EXCEL_FILENAME", required=False) or "base_spres_pro
 SHAREPOINT_FILE_URL = get_secret("SHAREPOINT_FILE_URL", required=False)
 CACHE_MINUTES = int(get_secret("CACHE_MINUTES", required=False) or "30")
 
+# Verifica se está em modo Cloud
+IS_CLOUD = hasattr(st, 'secrets') and 'AZURE_TENANT_ID' in st.secrets
+if IS_CLOUD:
+    print("☁️ Rodando no Streamlit Cloud")
+else:
+    print("💻 Rodando localmente")
+    
+    
 st.set_page_config(
     page_title="Gestão Mídia Pro | Spres",
     page_icon="🍊",
