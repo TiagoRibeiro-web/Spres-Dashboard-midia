@@ -740,25 +740,52 @@ def criar_grafico_mensal(dados_mensais):
 
     meses = ['Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan']
     
+    # Converte para lista e garante que todos os valores são numéricos
+    if hasattr(dados_mensais, 'values'):
+        valores = list(dados_mensais.values)
+    else:
+        valores = list(dados_mensais)
+    
     # Garante que temos 12 meses
-    valores = list(dados_mensais.values)
     if len(valores) < 12:
         valores = valores + [0] * (12 - len(valores))
     
-    # Remove valores NaN ou None
-    valores = [0 if pd.isna(v) or v is None else v for v in valores]
-
+    # Remove valores NaN, None, infinitos e converte para float
+    import math
+    valores_limpos = []
+    for v in valores[:12]:  # Pega apenas os primeiros 12
+        try:
+            if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
+                valores_limpos.append(0.0)
+            else:
+                valores_limpos.append(float(v))
+        except (ValueError, TypeError):
+            valores_limpos.append(0.0)
+    
+    # Cria textos formatados para as barras
+    textos = []
+    for v in valores_limpos:
+        if v > 0:
+            textos.append(f'R$ {v:,.0f}'.replace(',', '.'))
+        else:
+            textos.append('')
+    
+    # Cria o gráfico
     fig = go.Figure(data=[
         go.Bar(
             x=meses,
-            y=valores,
+            y=valores_limpos,
             marker=dict(
-                color=valores,
-                colorscale=[[0, SPRES_BLUE_LIGHT], [0.5, SPRES_BLUE], [1, SPRES_BLUE_DARK]],
+                color=valores_limpos,
+                colorscale=[
+                    [0, SPRES_BLUE_LIGHT],
+                    [0.5, SPRES_BLUE],
+                    [1, SPRES_BLUE_DARK]
+                ],
                 line=dict(color=SPRES_YELLOW, width=1.2),
                 cornerradius=6
             ),
-            text=[f'R$ {v:,.0f}'.replace(',', '.') for v in valores],
+            text=textos,
             textposition='outside',
             textfont=dict(size=10, color=SPRES_TEXT, family='Inter, sans-serif'),
             hovertemplate='<b>%{x}</b><br>Investimento: R$ %{y:,.2f}<extra></extra>',
