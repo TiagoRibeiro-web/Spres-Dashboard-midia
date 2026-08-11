@@ -2136,9 +2136,7 @@ def main():
             st.markdown(legenda_html, unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-        # Linha 2: Investimento Mensal + Resumo por Veículo lado a lado
-        col1, col2 = st.columns([1, 1])
-
+       
         # Investimento Mensal ocupando largura total
         st.markdown('<div class="card-container" style="margin-top:14px;">', unsafe_allow_html=True)
         st.markdown('<div class="card-title">📈 Investimento Mensal</div>', unsafe_allow_html=True)
@@ -2146,24 +2144,7 @@ def main():
         st.plotly_chart(fig_mensal, use_container_width=True, config={'displayModeBar': False})
         st.markdown('</div>', unsafe_allow_html=True)
 
-        resumo_veiculo = dados_controle_processado.groupby('veiculo').agg({
-            'total': 'sum',
-            'fev/26': 'sum', 'mar/26': 'sum', 'abr/26': 'sum', 'mai/26': 'sum',
-            'jun/26': 'sum', 'jul/26': 'sum', 'ago/26': 'sum', 'set/26': 'sum',
-            'out/26': 'sum', 'nov/26': 'sum', 'dez/26': 'sum', 'jan/27': 'sum'
-        }).round(2)
-
-        resumo_veiculo = resumo_veiculo.rename(columns={
-            'total': 'Total', 'fev/26': 'Fev', 'mar/26': 'Mar', 'abr/26': 'Abr',
-            'mai/26': 'Mai', 'jun/26': 'Jun', 'jul/26': 'Jul', 'ago/26': 'Ago',
-            'set/26': 'Set', 'out/26': 'Out', 'nov/26': 'Nov', 'dez/26': 'Dez', 'jan/27': 'Jan'
-        })
-
-        for col in resumo_veiculo.columns:
-            resumo_veiculo[col] = resumo_veiculo[col].apply(lambda x: formatar_moeda(x) if x > 0 else '-')
-
-        st.dataframe(resumo_veiculo, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        
 
     # ============================================================
     # ABA 2: CRONOGRAMA COMPLETO
