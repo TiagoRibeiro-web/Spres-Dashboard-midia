@@ -669,7 +669,9 @@ def criar_big_numbers(big_numbers, totais_aprovado_mensal, totais_utilizado_mens
 
     total_aprovado = big_numbers['total_controle_aprovado']
     total_utilizado = big_numbers['total_controle_utilizado']
-    saldo_positivo = big_numbers['total_saldo_positivo']
+    
+    # NOVO CÁLCULO: Saldo = Aprovado - Utilizado
+    saldo_positivo = total_aprovado - total_utilizado
 
     # % de execução
     pct_utilizado = (total_utilizado / total_aprovado * 100) if total_aprovado > 0 else 0
@@ -683,7 +685,7 @@ def criar_big_numbers(big_numbers, totais_aprovado_mensal, totais_utilizado_mens
             </div>
             <div class="big-number-label">Total Controle Aprovado</div>
             <div class="big-number-value" style="color:{SPRES_BLUE};">{formatar_moeda(total_aprovado)}</div>
-            <div class="big-number-sub">Orçamento aprovado (linha 47)</div>
+            <div class="big-number-sub">Orçamento aprovado</div>
             <div class="big-number-bar">
                 <div class="big-number-bar-fill" style="width:100%; background: {SPRES_BLUE};"></div>
             </div>
@@ -695,7 +697,7 @@ def criar_big_numbers(big_numbers, totais_aprovado_mensal, totais_utilizado_mens
             </div>
             <div class="big-number-label">Total Controle Utilizado</div>
             <div class="big-number-value" style="color:{SPRES_YELLOW_DARK};">{formatar_moeda(total_utilizado)}</div>
-            <div class="big-number-sub">Gastos realizados (linha 48)</div>
+            <div class="big-number-sub">Gastos realizados</div>
             <div class="big-number-bar">
                 <div class="big-number-bar-fill" style="width:{pct_utilizado:.1f}%; background: {SPRES_YELLOW_DARK};"></div>
             </div>
@@ -707,7 +709,7 @@ def criar_big_numbers(big_numbers, totais_aprovado_mensal, totais_utilizado_mens
             </div>
             <div class="big-number-label">Total Saldo Positivo</div>
             <div class="big-number-value" style="color:{SPRES_ORANGE};">{formatar_moeda(saldo_positivo)}</div>
-            <div class="big-number-sub">Disponível para uso (linha 49)</div>
+            <div class="big-number-sub">Disponível para uso (Aprovado - Utilizado)</div>
             <div class="big-number-bar">
                 <div class="big-number-bar-fill" style="width:{pct_saldo:.1f}%; background: {SPRES_ORANGE};"></div>
             </div>
@@ -2137,37 +2139,31 @@ def main():
         # Linha 2: Investimento Mensal + Resumo por Veículo lado a lado
         col1, col2 = st.columns([1, 1])
 
-        with col1:
-            with st.container():
-                st.markdown('<div class="chart-container card-container" style="margin-top:14px;">', unsafe_allow_html=True)
-                st.markdown('<div class="card-title">📈 Investimento Mensal</div>', unsafe_allow_html=True)
-                fig_mensal = criar_grafico_mensal(dados_mensais)
-                st.plotly_chart(fig_mensal, use_container_width=True, config={'displayModeBar': False})
-                st.markdown('</div>', unsafe_allow_html=True)
+        # Investimento Mensal ocupando largura total
+        st.markdown('<div class="card-container" style="margin-top:14px;">', unsafe_allow_html=True)
+        st.markdown('<div class="card-title">📈 Investimento Mensal</div>', unsafe_allow_html=True)
+        fig_mensal = criar_grafico_mensal(dados_mensais)
+        st.plotly_chart(fig_mensal, use_container_width=True, config={'displayModeBar': False})
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        with col2:
-            with st.container():
-                st.markdown('<div class="card-container" style="margin-top:14px;">', unsafe_allow_html=True)
-                st.markdown('<div class="card-title">📋 Resumo por Veículo</div>', unsafe_allow_html=True)
+        resumo_veiculo = dados_controle_processado.groupby('veiculo').agg({
+            'total': 'sum',
+            'fev/26': 'sum', 'mar/26': 'sum', 'abr/26': 'sum', 'mai/26': 'sum',
+            'jun/26': 'sum', 'jul/26': 'sum', 'ago/26': 'sum', 'set/26': 'sum',
+            'out/26': 'sum', 'nov/26': 'sum', 'dez/26': 'sum', 'jan/27': 'sum'
+        }).round(2)
 
-                resumo_veiculo = dados_controle_processado.groupby('veiculo').agg({
-                    'total': 'sum',
-                    'fev/26': 'sum', 'mar/26': 'sum', 'abr/26': 'sum', 'mai/26': 'sum',
-                    'jun/26': 'sum', 'jul/26': 'sum', 'ago/26': 'sum', 'set/26': 'sum',
-                    'out/26': 'sum', 'nov/26': 'sum', 'dez/26': 'sum', 'jan/27': 'sum'
-                }).round(2)
+        resumo_veiculo = resumo_veiculo.rename(columns={
+            'total': 'Total', 'fev/26': 'Fev', 'mar/26': 'Mar', 'abr/26': 'Abr',
+            'mai/26': 'Mai', 'jun/26': 'Jun', 'jul/26': 'Jul', 'ago/26': 'Ago',
+            'set/26': 'Set', 'out/26': 'Out', 'nov/26': 'Nov', 'dez/26': 'Dez', 'jan/27': 'Jan'
+        })
 
-                resumo_veiculo = resumo_veiculo.rename(columns={
-                    'total': 'Total', 'fev/26': 'Fev', 'mar/26': 'Mar', 'abr/26': 'Abr',
-                    'mai/26': 'Mai', 'jun/26': 'Jun', 'jul/26': 'Jul', 'ago/26': 'Ago',
-                    'set/26': 'Set', 'out/26': 'Out', 'nov/26': 'Nov', 'dez/26': 'Dez', 'jan/27': 'Jan'
-                })
+        for col in resumo_veiculo.columns:
+            resumo_veiculo[col] = resumo_veiculo[col].apply(lambda x: formatar_moeda(x) if x > 0 else '-')
 
-                for col in resumo_veiculo.columns:
-                    resumo_veiculo[col] = resumo_veiculo[col].apply(lambda x: formatar_moeda(x) if x > 0 else '-')
-
-                st.dataframe(resumo_veiculo, use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+        st.dataframe(resumo_veiculo, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     # ============================================================
     # ABA 2: CRONOGRAMA COMPLETO
