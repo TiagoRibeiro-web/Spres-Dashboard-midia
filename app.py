@@ -736,73 +736,94 @@ def criar_cards(dados_geral, dados_controle):
         )
 
 def criar_grafico_mensal(dados_mensais):
-    """Cria gráfico de barras do investimento mensal com identidade Spres tecnológica"""
-
+    """Cria gráfico de barras do investimento mensal - Versão robusta"""
+    
     meses = ['Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan']
     
-    # Converte para lista e garante que todos os valores são numéricos
-    if hasattr(dados_mensais, 'values'):
-        valores = list(dados_mensais.values)
-    else:
-        valores = list(dados_mensais)
+    # Converte QUALQUER formato para lista numérica limpa
+    valores = []
     
-    # Garante que temos 12 meses
-    if len(valores) < 12:
-        valores = valores + [0] * (12 - len(valores))
-    
-    # Remove valores NaN, None, infinitos e converte para float
-    import math
-    valores_limpos = []
-    for v in valores[:12]:  # Pega apenas os primeiros 12
-        try:
-            if v is None or (isinstance(v, float) and (math.isnan(v) or math.isinf(v))):
-                valores_limpos.append(0.0)
-            else:
-                valores_limpos.append(float(v))
-        except (ValueError, TypeError):
-            valores_limpos.append(0.0)
-    
-    # Cria textos formatados para as barras
-    textos = []
-    for v in valores_limpos:
-        if v > 0:
-            textos.append(f'R$ {v:,.0f}'.replace(',', '.'))
+    try:
+        # Tenta pegar os valores
+        if hasattr(dados_mensais, 'values'):
+            raw_values = dados_mensais.values
+        elif hasattr(dados_mensais, 'tolist'):
+            raw_values = dados_mensais.tolist()
+        elif isinstance(dados_mensais, dict):
+            raw_values = list(dados_mensais.values())
+        elif isinstance(dados_mensais, (list, tuple)):
+            raw_values = list(dados_mensais)
         else:
-            textos.append('')
+            raw_values = [0] * 12
+        
+        # Limpa cada valor
+        import math
+        for v in raw_values[:12]:
+            try:
+                if v is None:
+                    valores.append(0.0)
+                elif isinstance(v, (int, float)):
+                    if math.isnan(v) or math.isinf(v):
+                        valores.append(0.0)
+                    else:
+                        valores.append(float(v))
+                elif isinstance(v, str):
+                    # Tenta converter string para número
+                    clean = v.replace('R$', '').replace('.', '').replace(',', '.').strip()
+                    valores.append(float(clean))
+                else:
+                    valores.append(0.0)
+            except:
+                valores.append(0.0)
+                
+    except Exception as e:
+        # Fallback total
+        valores = [0] * 12
+    
+    # Garante exatamente 12 valores
+    while len(valores) < 12:
+        valores.append(0.0)
+    valores = valores[:12]
+    
+    # Se TODOS os valores são zero, mostra mensagem
+    if all(v == 0 for v in valores):
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Sem dados de investimento mensal",
+            x=0.5, y=0.5,
+            showarrow=False,
+            font=dict(size=14, color=SPRES_TEXT_MUTED)
+        )
+        fig.update_layout(height=360)
+        return fig
     
     # Cria o gráfico
-    fig = go.Figure(data=[
-        go.Bar(
-            x=meses,
-            y=valores_limpos,
-            marker=dict(
-                color=valores_limpos,
-                colorscale=[
-                    [0, SPRES_BLUE_LIGHT],
-                    [0.5, SPRES_BLUE],
-                    [1, SPRES_BLUE_DARK]
-                ],
-                line=dict(color=SPRES_YELLOW, width=1.2),
-                cornerradius=6
-            ),
-            text=textos,
-            textposition='outside',
-            textfont=dict(size=10, color=SPRES_TEXT, family='Inter, sans-serif'),
-            hovertemplate='<b>%{x}</b><br>Investimento: R$ %{y:,.2f}<extra></extra>',
-            showlegend=False
-        )
-    ])
-
+    fig = go.Figure()
+    
+    fig.add_trace(go.Bar(
+        x=meses,
+        y=valores,
+        marker=dict(
+            color=SPRES_BLUE,
+            line=dict(color=SPRES_YELLOW, width=1.5)
+        ),
+        text=[f'R$ {v:,.0f}'.replace(',', '.') if v > 0 else '' for v in valores],
+        textposition='outside',
+        textfont=dict(
+            size=11,
+            color=SPRES_TEXT,
+            family='Inter, sans-serif'
+        ),
+        hovertemplate='<b>%{{x}}</b><br>Investimento: <b>R$ %{{y:,.2f}}</b><extra></extra>',
+        showlegend=False
+    ))
+    
     fig.update_layout(
-        title=None,
-        xaxis_title=None,
-        yaxis_title=None,
         height=360,
-        margin=dict(l=20, r=20, t=30, b=20),
+        margin=dict(l=20, r=20, t=20, b=30),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color=SPRES_TEXT, family='Inter, sans-serif'),
-        showlegend=False,
         xaxis=dict(
             showgrid=False,
             linecolor=SPRES_BORDER,
@@ -816,7 +837,7 @@ def criar_grafico_mensal(dados_mensais):
             tickfont=dict(size=11, color=SPRES_TEXT_MUTED)
         )
     )
-
+    
     return fig
 
 def criar_grafico_distribuicao(distribuicao_veiculo, total_geral=None):
