@@ -921,99 +921,96 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
     if total_geral is None:
         total_geral = distribuicao_veiculo.sum()
     
-    # Ordena todos os veículos
     distribuicao_ord = distribuicao_veiculo.sort_values(ascending=False)
     
-    # Monta o HTML como uma string única - SEM .format() no final!
-    html = f"""
-<div style="margin-top:16px; padding:20px; background:{TECH_GLASS_BG}; 
-            border-radius:16px; border:1px solid {TECH_GLASS_BORDER};
-            backdrop-filter: blur(12px);">
-    
-    <div style="display:flex; justify-content:space-between; align-items:center; 
-                margin-bottom:16px; padding-bottom:12px; 
-                border-bottom:2px solid rgba(0,75,141,0.08);">
-        <div>
-            <div style="font-size:14px; font-weight:700; color:{SPRES_BLUE_DARK};">
-                📊 Distribuição Detalhada
+    # Usar string com .format() para evitar problemas com chaves {} do CSS
+    html = """
+    <div style="margin-top:16px; padding:20px; background:{glass_bg}; 
+                border-radius:16px; border:1px solid {glass_border};
+                backdrop-filter: blur(12px);">
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; 
+                    margin-bottom:16px; padding-bottom:12px; 
+                    border-bottom:2px solid rgba(0,75,141,0.08);">
+            <div>
+                <div style="font-size:14px; font-weight:700; color:{blue_dark};">
+                    &#128202; Distribuicao Detalhada
+                </div>
+                <div style="font-size:11px; color:{text_muted}; margin-top:2px;">
+                    {qtd_itens} itens &bull; Total: {total_formatado}
+                </div>
             </div>
-            <div style="font-size:11px; color:{SPRES_TEXT_MUTED}; margin-top:2px;">
-                {len(distribuicao_ord)} itens &bull; Total: {formatar_moeda(total_geral)}
+            <div style="display:flex; gap:16px; font-size:11px; color:{text_muted};">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="width:12px; height:12px; background:{blue}; 
+                                border-radius:3px;"></div>
+                    Principais
+                </div>
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="width:12px; height:12px; background:{orange}; 
+                                border-radius:3px;"></div>
+                    Demais
+                </div>
             </div>
         </div>
-        <div style="display:flex; gap:16px; font-size:11px; color:{SPRES_TEXT_MUTED};">
-            <div style="display:flex; align-items:center; gap:6px;">
-                <div style="width:12px; height:12px; background:{SPRES_BLUE}; 
-                            border-radius:3px;"></div>
-                Principais
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-                <div style="width:12px; height:12px; background:{SPRES_ORANGE}; 
-                            border-radius:3px;"></div>
-                Demais
-            </div>
-        </div>
-    </div>
+        
+        <table style="width:100%; border-collapse:collapse;">
+            <thead>
+                <tr style="border-bottom:2px solid rgba(0,75,141,0.08);">
+                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
+                               text-align:center; text-transform:uppercase; letter-spacing:0.5px; 
+                               width:40px;">#</th>
+                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
+                               text-align:left; text-transform:uppercase; letter-spacing:0.5px;">Veiculo</th>
+                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
+                               text-align:right; text-transform:uppercase; letter-spacing:0.5px;
+                               width:120px;">Investimento</th>
+                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
+                               text-align:center; text-transform:uppercase; letter-spacing:0.5px;
+                               width:200px;">% do Total</th>
+                </tr>
+            </thead>
+            <tbody>
+    """.format(
+        glass_bg=TECH_GLASS_BG,
+        glass_border=TECH_GLASS_BORDER,
+        blue_dark=SPRES_BLUE_DARK,
+        text_muted=SPRES_TEXT_MUTED,
+        qtd_itens=len(distribuicao_ord),
+        total_formatado=formatar_moeda(total_geral),
+        blue=SPRES_BLUE,
+        orange=SPRES_ORANGE
+    )
     
-    <table style="width:100%; border-collapse:collapse;">
-        <thead>
-            <tr style="border-bottom:2px solid rgba(0,75,141,0.08);">
-                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                           text-align:center; text-transform:uppercase; letter-spacing:0.5px; 
-                           width:40px;">#</th>
-                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                           text-align:left; text-transform:uppercase; letter-spacing:0.5px;">Veículo</th>
-                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                           text-align:right; text-transform:uppercase; letter-spacing:0.5px;
-                           width:120px;">Investimento</th>
-                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                           text-align:center; text-transform:uppercase; letter-spacing:0.5px;
-                           width:200px;">% do Total</th>
-            </tr>
-        </thead>
-        <tbody>"""
+    # Adiciona linhas da tabela (TOP 5)
+    cores_posicao = [
+        (SPRES_BLUE_DARK, 'rgba(0,50,95,0.06)'),
+        (SPRES_BLUE, 'rgba(0,75,141,0.05)'),
+        (SPRES_BLUE_LIGHT, 'rgba(46,125,209,0.04)'),
+        (SPRES_YELLOW_DARK, 'rgba(221,177,0,0.04)'),
+        (SPRES_YELLOW, 'rgba(255,214,0,0.04)')
+    ]
     
-    # Adiciona apenas os TOP 5
-    for i, (veiculo, valor) in enumerate(distribuicao_ord.head(5).items(), 1):
+    for i, (veiculo, valor) in enumerate(distribuicao_ord.head(5).items()):
         pct = (valor / total_geral * 100) if total_geral > 0 else 0
-        
-        # Define cor baseada na posição
-        if i == 1:
-            bg = 'rgba(0,50,95,0.06)'
-            bar_color = SPRES_BLUE_DARK
-            text_color = SPRES_BLUE_DARK
-        elif i == 2:
-            bg = 'rgba(0,75,141,0.05)'
-            bar_color = SPRES_BLUE
-            text_color = SPRES_BLUE
-        elif i == 3:
-            bg = 'rgba(46,125,209,0.04)'
-            bar_color = SPRES_BLUE_LIGHT
-            text_color = SPRES_BLUE_LIGHT
-        elif i == 4:
-            bg = 'rgba(221,177,0,0.04)'
-            bar_color = SPRES_YELLOW_DARK
-            text_color = SPRES_YELLOW_DARK
-        else:
-            bg = 'rgba(255,214,0,0.04)'
-            bar_color = SPRES_YELLOW
-            text_color = SPRES_YELLOW_DARK
-        
+        bar_color, bg_color = cores_posicao[i]
+        text_color = SPRES_YELLOW_DARK if i == 4 else bar_color
         bar_width = min(pct * 2.5, 100)
-        top_badge = '<span style="font-size:10px; color:#FF8A1E; margin-left:6px;">★ TOP</span>' if i <= 3 else ''
         
-        html += f"""
+        top_badge = '<span style="font-size:10px; color:#FF8A1E; margin-left:6px;">&#9733; TOP</span>' if i < 3 else ''
+        
+        html += """
             <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:{bg};">
                 <td style="padding:10px 12px; font-size:12px; text-align:center;">
                     <span style="display:inline-flex; align-items:center; justify-content:center;
                                  width:26px; height:26px; border-radius:50%;
                                  background:{bar_color}; color:white; font-weight:700;
-                                 font-size:12px;">{i}</span>
+                                 font-size:12px;">{pos}</span>
                 </td>
-                <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           font-weight:600;">{veiculo}{top_badge}</td>
-                <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           text-align:right; font-weight:600;">{formatar_moeda(valor)}</td>
+                <td style="padding:10px 12px; font-size:13px; color:{text}; 
+                           font-weight:600;">{veiculo}{badge}</td>
+                <td style="padding:10px 12px; font-size:13px; color:{text}; 
+                           text-align:right; font-weight:600;">{valor_fmt}</td>
                 <td style="padding:10px 12px; text-align:center;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <div style="flex-grow:1; height:8px; background:rgba(0,75,141,0.06); 
@@ -1026,7 +1023,19 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
                                      font-size:13px;">{pct:.1f}%</span>
                     </div>
                 </td>
-            </tr>"""
+            </tr>
+        """.format(
+            bg=bg_color,
+            bar_color=bar_color,
+            pos=i+1,
+            text=SPRES_TEXT,
+            veiculo=veiculo,
+            badge=top_badge,
+            valor_fmt=formatar_moeda(valor),
+            bar_width=bar_width,
+            text_color=text_color,
+            pct=pct
+        )
     
     # Adiciona "Demais Veículos"
     outros_valor = distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0
@@ -1035,50 +1044,66 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
         bar_width = min(outros_pct * 2.5, 100)
         qtd_outros = len(distribuicao_ord) - 5
         
-        html += f"""
+        html += """
             <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:rgba(255,138,30,0.04);">
                 <td style="padding:10px 12px; font-size:12px; text-align:center;">
                     <span style="display:inline-flex; align-items:center; justify-content:center;
                                  width:26px; height:26px; border-radius:50%;
-                                 background:{SPRES_ORANGE}; color:white; font-weight:700;
+                                 background:{orange}; color:white; font-weight:700;
                                  font-size:12px;">6</span>
                 </td>
-                <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           font-weight:600;">Demais Veículos ({qtd_outros} itens)</td>
-                <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           text-align:right; font-weight:600;">{formatar_moeda(outros_valor)}</td>
+                <td style="padding:10px 12px; font-size:13px; color:{text}; 
+                           font-weight:600;">Demais Veiculos ({qtd} itens)</td>
+                <td style="padding:10px 12px; font-size:13px; color:{text}; 
+                           text-align:right; font-weight:600;">{valor_fmt}</td>
                 <td style="padding:10px 12px; text-align:center;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <div style="flex-grow:1; height:8px; background:rgba(0,75,141,0.06); 
                                     border-radius:4px; overflow:hidden;">
                             <div style="width:{bar_width}%; height:100%; 
-                                        background:linear-gradient(90deg, {SPRES_ORANGE}99, {SPRES_ORANGE}); 
+                                        background:linear-gradient(90deg, {orange}99, {orange}); 
                                         border-radius:4px;"></div>
                         </div>
-                        <span style="font-weight:700; color:{SPRES_ORANGE}; min-width:50px; 
-                                     font-size:13px;">{outros_pct:.1f}%</span>
+                        <span style="font-weight:700; color:{orange}; min-width:50px; 
+                                     font-size:13px;">{pct:.1f}%</span>
                     </div>
                 </td>
-            </tr>"""
+            </tr>
+        """.format(
+            orange=SPRES_ORANGE,
+            text=SPRES_TEXT,
+            qtd=qtd_outros,
+            valor_fmt=formatar_moeda(outros_valor),
+            bar_width=bar_width,
+            pct=outros_pct
+        )
     
     # Fecha tabela e adiciona rodapé
     top3_valor = distribuicao_ord.head(3).sum()
     top5_valor = distribuicao_ord.head(5).sum()
     
-    html += f"""
+    html += """
         </tbody>
     </table>
     
     <div style="margin-top:16px; padding:12px 16px; 
                 background:linear-gradient(135deg, rgba(0,75,141,0.04), rgba(255,214,0,0.03)); 
-                border-radius:10px; border-left:3px solid {SPRES_BLUE};">
-        <div style="display:flex; gap:20px; font-size:11px; color:{SPRES_TEXT_MUTED};">
-            <div><strong style="color:{SPRES_BLUE};">Top 3:</strong> {formatar_moeda(top3_valor)}</div>
-            <div><strong style="color:{SPRES_BLUE};">Top 5:</strong> {formatar_moeda(top5_valor)}</div>
-            <div><strong style="color:{SPRES_ORANGE};">Demais:</strong> {formatar_moeda(outros_valor)}</div>
+                border-radius:10px; border-left:3px solid {blue};">
+        <div style="display:flex; gap:20px; font-size:11px; color:{text_muted};">
+            <div><strong style="color:{blue};">Top 3:</strong> {top3}</div>
+            <div><strong style="color:{blue};">Top 5:</strong> {top5}</div>
+            <div><strong style="color:{orange};">Demais:</strong> {outros}</div>
         </div>
     </div>
-</div>"""
+</div>
+    """.format(
+        blue=SPRES_BLUE,
+        text_muted=SPRES_TEXT_MUTED,
+        top3=formatar_moeda(top3_valor),
+        top5=formatar_moeda(top5_valor),
+        orange=SPRES_ORANGE,
+        outros=formatar_moeda(outros_valor)
+    )
     
     return html
 
