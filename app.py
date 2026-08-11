@@ -924,12 +924,12 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
     # Ordena todos os veículos
     distribuicao_ord = distribuicao_veiculo.sort_values(ascending=False)
     
+    # Monta o HTML como uma string única
     html = f"""
     <div style="margin-top:16px; padding:20px; background:{TECH_GLASS_BG}; 
                 border-radius:16px; border:1px solid {TECH_GLASS_BORDER};
                 backdrop-filter: blur(12px);">
         
-        <!-- Cabeçalho -->
         <div style="display:flex; justify-content:space-between; align-items:center; 
                     margin-bottom:16px; padding-bottom:12px; 
                     border-bottom:2px solid rgba(0,75,141,0.08);">
@@ -941,7 +941,6 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
                     {len(distribuicao_ord)} itens • Total: {formatar_moeda(total_geral)}
                 </div>
             </div>
-            <!-- Legenda de cores -->
             <div style="display:flex; gap:16px; font-size:11px; color:{SPRES_TEXT_MUTED};">
                 <div style="display:flex; align-items:center; gap:6px;">
                     <div style="width:12px; height:12px; background:{SPRES_BLUE}; 
@@ -956,126 +955,129 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
             </div>
         </div>
         
-        <!-- Tabela -->
         <table style="width:100%; border-collapse:collapse;">
             <thead>
                 <tr style="border-bottom:2px solid rgba(0,75,141,0.08);">
                     <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
                                text-align:center; text-transform:uppercase; letter-spacing:0.5px; 
-                               width:40px;">
-                        #</th>
+                               width:40px;">#</th>
                     <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                               text-align:left; text-transform:uppercase; letter-spacing:0.5px;">
-                        Veículo</th>
+                               text-align:left; text-transform:uppercase; letter-spacing:0.5px;">Veículo</th>
                     <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
                                text-align:right; text-transform:uppercase; letter-spacing:0.5px;
-                               width:120px;">
-                        Investimento</th>
+                               width:120px;">Investimento</th>
                     <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
                                text-align:center; text-transform:uppercase; letter-spacing:0.5px;
-                               width:200px;">
-                        % do Total</th>
+                               width:200px;">% do Total</th>
                 </tr>
             </thead>
             <tbody>
     """
     
-    # Linhas da tabela
-    for i, (veiculo, valor) in enumerate(distribuicao_ord.items(), 1):
+    # Adiciona apenas os TOP 5 visíveis + "Demais Veículos"
+    for i, (veiculo, valor) in enumerate(distribuicao_ord.head(5).items(), 1):
         pct = (valor / total_geral * 100) if total_geral > 0 else 0
         
-        # Define cor da linha baseado na posição
-        if i <= 5:
-            # Top 5 - tons de azul
-            if i == 1:
-                bg = 'rgba(0,50,95,0.06)'
-                bar_color = SPRES_BLUE_DARK
-                text_color = SPRES_BLUE_DARK
-            elif i == 2:
-                bg = 'rgba(0,75,141,0.05)'
-                bar_color = SPRES_BLUE
-                text_color = SPRES_BLUE
-            elif i == 3:
-                bg = 'rgba(46,125,209,0.04)'
-                bar_color = SPRES_BLUE_LIGHT
-                text_color = SPRES_BLUE_LIGHT
-            elif i == 4:
-                bg = 'rgba(221,177,0,0.04)'
-                bar_color = SPRES_YELLOW_DARK
-                text_color = SPRES_YELLOW_DARK
-            else:
-                bg = 'rgba(255,214,0,0.04)'
-                bar_color = SPRES_YELLOW
-                text_color = SPRES_YELLOW_DARK
+        # Define cor baseada na posição
+        if i == 1:
+            bg = 'rgba(0,50,95,0.06)'
+            bar_color = SPRES_BLUE_DARK
+            text_color = SPRES_BLUE_DARK
+        elif i == 2:
+            bg = 'rgba(0,75,141,0.05)'
+            bar_color = SPRES_BLUE
+            text_color = SPRES_BLUE
+        elif i == 3:
+            bg = 'rgba(46,125,209,0.04)'
+            bar_color = SPRES_BLUE_LIGHT
+            text_color = SPRES_BLUE_LIGHT
+        elif i == 4:
+            bg = 'rgba(221,177,0,0.04)'
+            bar_color = SPRES_YELLOW_DARK
+            text_color = SPRES_YELLOW_DARK
         else:
-            # Demais - laranja
-            bg = 'rgba(255,138,30,0.03)'
-            bar_color = SPRES_ORANGE
-            text_color = SPRES_TEXT_MUTED
+            bg = 'rgba(255,214,0,0.04)'
+            bar_color = SPRES_YELLOW
+            text_color = SPRES_YELLOW_DARK
         
-        # Barra de progresso
-        bar_width = min(pct * 2.5, 100)  # 2.5x para melhor visualização
+        bar_width = min(pct * 2.5, 100)
+        top_badge = '<span style="font-size:10px; color:#FF8A1E; margin-left:6px;">★ TOP</span>' if i <= 3 else ''
         
         html += f"""
-            <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:{bg};
-                       transition: background 0.2s;">
+            <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:{bg};">
                 <td style="padding:10px 12px; font-size:12px; text-align:center;">
                     <span style="display:inline-flex; align-items:center; justify-content:center;
                                  width:26px; height:26px; border-radius:50%;
                                  background:{bar_color}; color:white; font-weight:700;
-                                 font-size:12px;">
-                        {i}
-                    </span>
+                                 font-size:12px;">{i}</span>
                 </td>
                 <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           font-weight:{'600' if i <= 5 else '400'};">
-                    {veiculo}
-                    {f'<span style="font-size:10px; color:{SPRES_ORANGE}; margin-left:6px;">★ TOP</span>' if i <= 3 else ''}
-                </td>
+                           font-weight:600;">{veiculo}{top_badge}</td>
                 <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           text-align:right; font-weight:600;">
-                    {formatar_moeda(valor)}
-                </td>
+                           text-align:right; font-weight:600;">{formatar_moeda(valor)}</td>
                 <td style="padding:10px 12px; text-align:center;">
                     <div style="display:flex; align-items:center; gap:8px;">
                         <div style="flex-grow:1; height:8px; background:rgba(0,75,141,0.06); 
                                     border-radius:4px; overflow:hidden;">
                             <div style="width:{bar_width}%; height:100%; 
                                         background:linear-gradient(90deg, {bar_color}99, {bar_color}); 
-                                        border-radius:4px;
-                                        box-shadow: 0 1px 3px {bar_color}33;">
-                            </div>
+                                        border-radius:4px;"></div>
                         </div>
                         <span style="font-weight:700; color:{text_color}; min-width:50px; 
-                                     font-size:13px;">
-                            {pct:.1f}%
-                        </span>
+                                     font-size:13px;">{pct:.1f}%</span>
                     </div>
                 </td>
             </tr>
         """
     
+    # Adiciona linha "Demais Veículos" (soma do resto)
+    outros_valor = distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0
+    if outros_valor > 0:
+        outros_pct = (outros_valor / total_geral * 100) if total_geral > 0 else 0
+        bar_width = min(outros_pct * 2.5, 100)
+        
+        html += f"""
+            <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:rgba(255,138,30,0.04);">
+                <td style="padding:10px 12px; font-size:12px; text-align:center;">
+                    <span style="display:inline-flex; align-items:center; justify-content:center;
+                                 width:26px; height:26px; border-radius:50%;
+                                 background:{SPRES_ORANGE}; color:white; font-weight:700;
+                                 font-size:12px;">6</span>
+                </td>
+                <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
+                           font-weight:600;">Demais Veículos ({len(distribuicao_ord) - 5} itens)</td>
+                <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
+                           text-align:right; font-weight:600;">{formatar_moeda(outros_valor)}</td>
+                <td style="padding:10px 12px; text-align:center;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <div style="flex-grow:1; height:8px; background:rgba(0,75,141,0.06); 
+                                    border-radius:4px; overflow:hidden;">
+                            <div style="width:{bar_width}%; height:100%; 
+                                        background:linear-gradient(90deg, {SPRES_ORANGE}99, {SPRES_ORANGE}); 
+                                        border-radius:4px;"></div>
+                        </div>
+                        <span style="font-weight:700; color:{SPRES_ORANGE}; min-width:50px; 
+                                     font-size:13px;">{outros_pct:.1f}%</span>
+                    </div>
+                </td>
+            </tr>
+        """
+    
+    # Fecha a tabela e adiciona rodapé
+    top3_valor = distribuicao_ord.head(3).sum()
+    top5_valor = distribuicao_ord.head(5).sum()
+    
     html += f"""
             </tbody>
         </table>
         
-        <!-- Rodapé informativo -->
         <div style="margin-top:16px; padding:12px 16px; 
                     background:linear-gradient(135deg, rgba(0,75,141,0.04), rgba(255,214,0,0.03)); 
                     border-radius:10px; border-left:3px solid {SPRES_BLUE};">
             <div style="display:flex; gap:20px; font-size:11px; color:{SPRES_TEXT_MUTED};">
-                <div>
-                    <strong style="color:{SPRES_BLUE};">Top 3:</strong> 
-                    {formatar_moeda(distribuicao_ord.head(3).sum())}
-                </div>
-                <div>
-                    <strong style="color:{SPRES_BLUE};">Top 5:</strong> 
-                    {formatar_moeda(distribuicao_ord.head(5).sum())}
-                </div>
-                <div>
-                    <strong style="color:{SPRES_ORANGE};">Demais:</strong> 
-                    {formatar_moeda(distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0)}
-                </div>
+                <div><strong style="color:{SPRES_BLUE};">Top 3:</strong> {formatar_moeda(top3_valor)}</div>
+                <div><strong style="color:{SPRES_BLUE};">Top 5:</strong> {formatar_moeda(top5_valor)}</div>
+                <div><strong style="color:{SPRES_ORANGE};">Demais:</strong> {formatar_moeda(outros_valor)}</div>
             </div>
         </div>
     </div>
