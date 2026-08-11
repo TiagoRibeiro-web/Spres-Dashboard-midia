@@ -791,13 +791,9 @@ def criar_grafico_mensal(dados_mensais):
 
     return fig
 
-def criar_grafico_distribuicao(distribuicao_veiculo, total_geral=None):
-    """
-    Cria treemap com EXATAMENTE 6-7 retângulos
-    Cores 100% Spres: azul corporativo, amarelo, laranja
-    Porcentagens calculadas sobre o total geral
-    """
-    
+def criar_grafico_distribuicao(distribuicao_veiculo):
+    """Cria treemap com Top 8 veículos + legenda com percentuais do restante"""
+
     # Remove valores nulos ou vazios
     distribuicao_veiculo = distribuicao_veiculo[distribuicao_veiculo.index.notna()]
     distribuicao_veiculo = distribuicao_veiculo[distribuicao_veiculo.index != '']
@@ -809,302 +805,83 @@ def criar_grafico_distribuicao(distribuicao_veiculo, total_geral=None):
         fig.update_layout(height=420)
         return fig
 
-    # Usa o total geral se fornecido
-    if total_geral is None:
-        total_geral = distribuicao_veiculo.sum()
-    
-    # Ordena por valor decrescente
-    distribuicao_ord = distribuicao_veiculo.sort_values(ascending=False)
-    
-    # Pega os TOP 5 principais (sempre)
-    top5 = distribuicao_ord.head(5)
-    
-    # O resto vira "Outros" (soma de todos os demais)
-    outros_valor = distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0
-    
-    # Monta os 6 itens finais (5 principais + Outros)
-    labels = list(top5.index) + ['Demais Veículos']
-    valores = list(top5.values) + [outros_valor]
-    
-    # Calcula porcentagens sobre o total geral
-    pcts = [(v / total_geral * 100) if total_geral > 0 else 0 for v in valores]
-    
-    # PALETA SPRES - Apenas 6 cores oficiais
-    cores_spres = [
-        SPRES_BLUE_DARK,      # Azul escuro (1º)
-        SPRES_BLUE,           # Azul corporativo (2º)
-        SPRES_BLUE_LIGHT,     # Azul claro (3º)
-        SPRES_YELLOW_DARK,    # Amarelo escuro (4º)
-        SPRES_YELLOW,         # Amarelo vivo (5º)
-        SPRES_ORANGE,         # Laranja (6º - Demais)
+    total = distribuicao_veiculo.sum()
+
+    # Pegar top 8 maiores
+    top8 = distribuicao_veiculo.sort_values(ascending=False).head(8)
+    resto = distribuicao_veiculo.sort_values(ascending=False).iloc[8:10]
+
+    # Labels e valores para o treemap (top 8 + "Outros")
+    labels = list(top8.index) + ['Outros']
+    values = list(top8.values) + [resto.sum()]
+
+    # Cores: gradiente do azul escuro ao azul claro para top 8, cinza para outros
+    core_colors_top = [
+        SPRES_BLUE_DARK, '#003D75', '#004790', '#0054A5', '#005FBA',
+        SPRES_BLUE_LIGHT, '#3D8ED6', '#5BA0DD', '#79B2E4', '#97C4EB'
     ]
-    
-    # Cria o treemap
+    colors = core_colors_top[:len(top8)] + ['#C0C8D0']
+
     fig = go.Figure(go.Treemap(
         labels=labels,
-        parents=[''] * len(labels),  # Todos no mesmo nível
-        values=valores,
-        
-        # Template do texto dentro dos retângulos
-        texttemplate=(
-            '<b>%{label}</b><br>' +
-            'R$ %{value:,.0f}<br>' +
-            '<b>%{customdata[0]:.1f}%</b>'
-        ),
-        textfont=dict(
-            size=13, 
-            color='white', 
-            family='Inter, sans-serif',
-            shadow='0 1px 3px rgba(0,0,0,0.3)'  # Sombra para legibilidade
-        ),
-        
-        # Cores Spres
+        parents=[''] * len(labels),
+        values=values,
+        texttemplate='<b>%{label}</b><br>R$ %{value:,.0f}<br>(%{percent})',
+        textfont=dict(size=12, color=SPRES_WHITE, family='Inter, sans-serif'),
         marker=dict(
-            colors=cores_spres[:len(labels)],  # Usa apenas as cores necessárias
-            line=dict(color='rgba(255,255,255,0.4)', width=2.5),
-            cornerradius=8,
-            pad=dict(t=25, l=10, r=10, b=10)  # Padding interno
+            colors=colors,
+            line=dict(color=SPRES_WHITE, width=2),
+            cornerradius=6
         ),
-        
-        # Dados personalizados (porcentagens)
-        customdata=[[pct] for pct in pcts],
-        
-        # Tooltip enriquecido
-        hovertemplate=(
-            '<b>%{label}</b><br>' +
-            'Valor: <b>R$ %{value:,.2f}</b><br>' +
-            '% do Total: <b>%{customdata[0]:.1f}%</b><br>' +
-            '<extra></extra>'
-        ),
-        
-        # Posicionamento do texto
-        textposition='middle center',
-        
-        # Configuração visual
-        tiling=dict(
-            packing='squarify',
-            pad=6
-        ),
-        
-        # Ocultar barra de caminho
-        pathbar=dict(visible=False)
+        hovertemplate='<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>',
+        tiling=dict(packing='squarify')
     ))
-    
-    # Layout limpo e profissional
+
     fig.update_layout(
-        height=460,
-        margin=dict(l=10, r=10, t=30, b=10),
+        title=None,
+        height=420,
+        margin=dict(l=10, r=10, t=10, b=10),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color=SPRES_TEXT, family='Inter, sans-serif'),
-        
-        # Anotação sutil no rodapé
-        annotations=[
-            dict(
-                text=f'<i>Total: {formatar_moeda(total_geral)} • 6 principais categorias</i>',
-                x=0.5,
-                y=-0.02,
-                xref='paper',
-                yref='paper',
-                showarrow=False,
-                font=dict(size=11, color=SPRES_TEXT_MUTED)
-            )
-        ]
     )
-    
+
     return fig
 
+def criar_legenda_distribuicao(distribuicao_veiculo):
+    """Cria HTML com lista dos veículos restantes (após top 8) com suas porcentagens"""
 
-def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
-    """Cria legenda complementar com ranking e métricas - estilo Spres"""
-    
-    if total_geral is None:
-        total_geral = distribuicao_veiculo.sum()
-    
-    distribuicao_ord = distribuicao_veiculo.sort_values(ascending=False)
-    
-    # Usar string com .format() para evitar problemas com chaves {} do CSS
-    html = """
-    <div style="margin-top:16px; padding:20px; background:{glass_bg}; 
-                border-radius:16px; border:1px solid {glass_border};
-                backdrop-filter: blur(12px);">
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; 
-                    margin-bottom:16px; padding-bottom:12px; 
-                    border-bottom:2px solid rgba(0,75,141,0.08);">
-            <div>
-                <div style="font-size:14px; font-weight:700; color:{blue_dark};">
-                    &#128202; Distribuicao Detalhada
-                </div>
-                <div style="font-size:11px; color:{text_muted}; margin-top:2px;">
-                    {qtd_itens} itens &bull; Total: {total_formatado}
-                </div>
-            </div>
-            <div style="display:flex; gap:16px; font-size:11px; color:{text_muted};">
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <div style="width:12px; height:12px; background:{blue}; 
-                                border-radius:3px;"></div>
-                    Principais
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <div style="width:12px; height:12px; background:{orange}; 
-                                border-radius:3px;"></div>
-                    Demais
-                </div>
-            </div>
-        </div>
-        
-        <table style="width:100%; border-collapse:collapse;">
-            <thead>
-                <tr style="border-bottom:2px solid rgba(0,75,141,0.08);">
-                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
-                               text-align:center; text-transform:uppercase; letter-spacing:0.5px; 
-                               width:40px;">#</th>
-                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
-                               text-align:left; text-transform:uppercase; letter-spacing:0.5px;">Veiculo</th>
-                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
-                               text-align:right; text-transform:uppercase; letter-spacing:0.5px;
-                               width:120px;">Investimento</th>
-                    <th style="padding:8px 12px; font-size:11px; color:{text_muted}; 
-                               text-align:center; text-transform:uppercase; letter-spacing:0.5px;
-                               width:200px;">% do Total</th>
-                </tr>
-            </thead>
-            <tbody>
-    """.format(
-        glass_bg=TECH_GLASS_BG,
-        glass_border=TECH_GLASS_BORDER,
-        blue_dark=SPRES_BLUE_DARK,
-        text_muted=SPRES_TEXT_MUTED,
-        qtd_itens=len(distribuicao_ord),
-        total_formatado=formatar_moeda(total_geral),
-        blue=SPRES_BLUE,
-        orange=SPRES_ORANGE
-    )
-    
-    # Adiciona linhas da tabela (TOP 5)
-    cores_posicao = [
-        (SPRES_BLUE_DARK, 'rgba(0,50,95,0.06)'),
-        (SPRES_BLUE, 'rgba(0,75,141,0.05)'),
-        (SPRES_BLUE_LIGHT, 'rgba(46,125,209,0.04)'),
-        (SPRES_YELLOW_DARK, 'rgba(221,177,0,0.04)'),
-        (SPRES_YELLOW, 'rgba(255,214,0,0.04)')
-    ]
-    
-    for i, (veiculo, valor) in enumerate(distribuicao_ord.head(5).items()):
-        pct = (valor / total_geral * 100) if total_geral > 0 else 0
-        bar_color, bg_color = cores_posicao[i]
-        text_color = SPRES_YELLOW_DARK if i == 4 else bar_color
-        bar_width = min(pct * 2.5, 100)
-        
-        top_badge = '<span style="font-size:10px; color:#FF8A1E; margin-left:6px;">&#9733; TOP</span>' if i < 3 else ''
-        
-        html += """
-            <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:{bg};">
-                <td style="padding:10px 12px; font-size:12px; text-align:center;">
-                    <span style="display:inline-flex; align-items:center; justify-content:center;
-                                 width:26px; height:26px; border-radius:50%;
-                                 background:{bar_color}; color:white; font-weight:700;
-                                 font-size:12px;">{pos}</span>
-                </td>
-                <td style="padding:10px 12px; font-size:13px; color:{text}; 
-                           font-weight:600;">{veiculo}{badge}</td>
-                <td style="padding:10px 12px; font-size:13px; color:{text}; 
-                           text-align:right; font-weight:600;">{valor_fmt}</td>
-                <td style="padding:10px 12px; text-align:center;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="flex-grow:1; height:8px; background:rgba(0,75,141,0.06); 
-                                    border-radius:4px; overflow:hidden;">
-                            <div style="width:{bar_width}%; height:100%; 
-                                        background:linear-gradient(90deg, {bar_color}99, {bar_color}); 
-                                        border-radius:4px;"></div>
-                        </div>
-                        <span style="font-weight:700; color:{text_color}; min-width:50px; 
-                                     font-size:13px;">{pct:.1f}%</span>
-                    </div>
-                </td>
-            </tr>
-        """.format(
-            bg=bg_color,
-            bar_color=bar_color,
-            pos=i+1,
-            text=SPRES_TEXT,
-            veiculo=veiculo,
-            badge=top_badge,
-            valor_fmt=formatar_moeda(valor),
-            bar_width=bar_width,
-            text_color=text_color,
-            pct=pct
-        )
-    
-    # Adiciona "Demais Veículos"
-    outros_valor = distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0
-    if outros_valor > 0:
-        outros_pct = (outros_valor / total_geral * 100) if total_geral > 0 else 0
-        bar_width = min(outros_pct * 2.5, 100)
-        qtd_outros = len(distribuicao_ord) - 5
-        
-        html += """
-            <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:rgba(255,138,30,0.04);">
-                <td style="padding:10px 12px; font-size:12px; text-align:center;">
-                    <span style="display:inline-flex; align-items:center; justify-content:center;
-                                 width:26px; height:26px; border-radius:50%;
-                                 background:{orange}; color:white; font-weight:700;
-                                 font-size:12px;">6</span>
-                </td>
-                <td style="padding:10px 12px; font-size:13px; color:{text}; 
-                           font-weight:600;">Demais Veiculos ({qtd} itens)</td>
-                <td style="padding:10px 12px; font-size:13px; color:{text}; 
-                           text-align:right; font-weight:600;">{valor_fmt}</td>
-                <td style="padding:10px 12px; text-align:center;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <div style="flex-grow:1; height:8px; background:rgba(0,75,141,0.06); 
-                                    border-radius:4px; overflow:hidden;">
-                            <div style="width:{bar_width}%; height:100%; 
-                                        background:linear-gradient(90deg, {orange}99, {orange}); 
-                                        border-radius:4px;"></div>
-                        </div>
-                        <span style="font-weight:700; color:{orange}; min-width:50px; 
-                                     font-size:13px;">{pct:.1f}%</span>
-                    </div>
-                </td>
-            </tr>
-        """.format(
-            orange=SPRES_ORANGE,
-            text=SPRES_TEXT,
-            qtd=qtd_outros,
-            valor_fmt=formatar_moeda(outros_valor),
-            bar_width=bar_width,
-            pct=outros_pct
-        )
-    
-    # Fecha tabela e adiciona rodapé
-    top3_valor = distribuicao_ord.head(3).sum()
-    top5_valor = distribuicao_ord.head(5).sum()
-    
-    html += """
-        </tbody>
-    </table>
-    
-    <div style="margin-top:16px; padding:12px 16px; 
-                background:linear-gradient(135deg, rgba(0,75,141,0.04), rgba(255,214,0,0.03)); 
-                border-radius:10px; border-left:3px solid {blue};">
-        <div style="display:flex; gap:20px; font-size:11px; color:{text_muted};">
-            <div><strong style="color:{blue};">Top 3:</strong> {top3}</div>
-            <div><strong style="color:{blue};">Top 5:</strong> {top5}</div>
-            <div><strong style="color:{orange};">Demais:</strong> {outros}</div>
-        </div>
-    </div>
-</div>
-    """.format(
-        blue=SPRES_BLUE,
-        text_muted=SPRES_TEXT_MUTED,
-        top3=formatar_moeda(top3_valor),
-        top5=formatar_moeda(top5_valor),
-        orange=SPRES_ORANGE,
-        outros=formatar_moeda(outros_valor)
-    )
-    
+    total = distribuicao_veiculo.sum()
+    resto = distribuicao_veiculo.sort_values(ascending=False).iloc[10:]
+
+    if resto.empty:
+        return None
+
+    rows_html = ''
+    for i, (veiculo, valor) in enumerate(resto.items()):
+        pct = (valor / total * 100) if total > 0 else 0
+        color = '#7B8794' if i % 2 == 0 else '#8A96A3'
+        rows_html += '<tr>'
+        rows_html += '<td style="padding:6px 10px; font-size:12px; color:' + color + '; border-bottom:1px solid rgba(0,75,141,0.06);">'
+        rows_html += '<span style="display:inline-block; width:8px; height:8px; border-radius:2px; background:' + color + '; margin-right:8px;"></span>'
+        rows_html += str(veiculo) + '</td>'
+        rows_html += '<td style="padding:6px 10px; font-size:12px; color:' + SPRES_TEXT_MUTED + '; text-align:right; border-bottom:1px solid rgba(0,75,141,0.06);">'
+        rows_html += formatar_moeda(valor) + '</td>'
+        rows_html += '<td style="padding:6px 10px; font-size:12px; color:' + SPRES_TEXT_MUTED + '; text-align:right; border-bottom:1px solid rgba(0,75,141,0.06);">'
+        rows_html += str(round(pct, 1)) + '%</td></tr>'
+
+    html = '<div style="margin-top:12px; padding:14px 16px; background:rgba(255,255,255,0.5); border-radius:12px; border:1px solid ' + TECH_GLASS_BORDER + ';">'
+    html += '<div style="font-size:12px; font-weight:700; color:' + SPRES_TEXT_MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:8px;">'
+    html += 'Demais veículos (' + str(len(resto)) + ' itens)</div>'
+    html += '<table style="width:100%; border-collapse:collapse;">'
+    html += '<thead><tr style="border-bottom:2px solid rgba(0,75,141,0.1);">'
+    html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:left; text-transform:uppercase; letter-spacing:0.4px;">Veículo</th>'
+    html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:right; text-transform:uppercase; letter-spacing:0.4px;">Valor</th>'
+    html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:right; text-transform:uppercase; letter-spacing:0.4px;">%</th>'
+    html += '</tr></thead><tbody>'
+    html += rows_html
+    html += '</tbody></table></div>'
+
     return html
 
 def formatar_celula_moeda(valor):
