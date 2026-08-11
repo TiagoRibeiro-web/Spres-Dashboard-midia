@@ -2226,13 +2226,20 @@ def main():
         st.markdown("---")
         st.markdown('<div class="card-title">📊 Análise de Controle</div>', unsafe_allow_html=True)
 
+        # Cálculo correto do saldo
+        total_aprovado = big_numbers['total_controle_aprovado']
+        total_utilizado = big_numbers['total_controle_utilizado']
+        saldo_calculado = total_aprovado - total_utilizado
+
         col3, col4, col5 = st.columns(3)
         with col3:
-            st.metric("✅ Total Controle Aprovado", formatar_moeda(big_numbers['total_controle_aprovado']))
+            st.metric("✅ Total Controle Aprovado", formatar_moeda(total_aprovado))
         with col4:
-            st.metric("🍊 Total Controle Utilizado", formatar_moeda(big_numbers['total_controle_utilizado']))
+            st.metric("🍊 Total Controle Utilizado", formatar_moeda(total_utilizado))
         with col5:
-            st.metric("💰 Total Saldo Positivo", formatar_moeda(big_numbers['total_saldo_positivo']))
+            st.metric("💰 Total Saldo Positivo", 
+                    formatar_moeda(saldo_calculado),
+                    delta="Aprovado - Utilizado")
 
         st.markdown("---")
         st.markdown('<div class="card-title">📊 Aprovado vs Utilizado por Mês</div>', unsafe_allow_html=True)
