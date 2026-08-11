@@ -119,6 +119,7 @@ SPRES_BLUE_LIGHT = "#2E7DD1"    # azul claro (auxiliar de gráficos)
 SPRES_BLUE_PALE = "#E6F0FA"     # fundo suave
 SPRES_YELLOW = "#FFD600"        # amarelo vivo do logo
 SPRES_YELLOW_DARK = "#DDB100"   # amarelo escuro (contraste)
+SPRES_YELLOW_LIGHT = "#FFF5A0"  # amarelo leve
 SPRES_ORANGE = "#FF8A1E"        # laranja (destaque saldo/alerts)
 SPRES_WHITE = "#FFFFFF"
 SPRES_CREAM = "#FFFDF5"
@@ -791,9 +792,13 @@ def criar_grafico_mensal(dados_mensais):
 
     return fig
 
-def criar_grafico_distribuicao(distribuicao_veiculo):
-    """Cria treemap com Top 8 veículos + legenda com percentuais do restante"""
-
+def criar_grafico_distribuicao(distribuicao_veiculo, total_geral=None):
+    """
+    Cria treemap com EXATAMENTE 6-7 retângulos
+    Cores 100% Spres: azul corporativo, amarelo, laranja
+    Porcentagens calculadas sobre o total geral
+    """
+    
     # Remove valores nulos ou vazios
     distribuicao_veiculo = distribuicao_veiculo[distribuicao_veiculo.index.notna()]
     distribuicao_veiculo = distribuicao_veiculo[distribuicao_veiculo.index != '']
@@ -805,47 +810,90 @@ def criar_grafico_distribuicao(distribuicao_veiculo):
         fig.update_layout(height=420)
         return fig
 
-    total = distribuicao_veiculo.sum()
-
-    # Pegar top 8 maiores
-    top8 = distribuicao_veiculo.sort_values(ascending=False).head(8)
-    resto = distribuicao_veiculo.sort_values(ascending=False).iloc[8:10]
-
-    # Labels e valores para o treemap (top 8 + "Outros")
-    labels = list(top8.index) + ['Outros']
-    values = list(top8.values) + [resto.sum()]
-
-    # Cores: gradiente do azul escuro ao azul claro para top 8, cinza para outros
-    core_colors_top = [
-        SPRES_BLUE_DARK, '#003D75', '#004790', '#0054A5', '#005FBA',
-        SPRES_BLUE_LIGHT, '#3D8ED6', '#5BA0DD', '#79B2E4', '#97C4EB'
+    # Usa o total geral se fornecido
+    if total_geral is None:
+        total_geral = distribuicao_veiculo.sum()
+    
+    # Ordena por valor decrescente
+    distribuicao_ord = distribuicao_veiculo.sort_values(ascending=False)
+    
+    # Pega os TOP 5 principais
+    top5 = distribuicao_ord.head(5)
+    
+    # O resto vira "Outros"
+    outros_valor = distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0
+    
+    # Monta os labels e valores (5 principais + Outros)
+    labels = list(top5.index) + ['Demais Veículos']
+    valores = list(top5.values) + [outros_valor]
+    
+    # Calcula porcentagens sobre o total geral
+    pcts = [(v / total_geral * 100) if total_geral > 0 else 0 for v in valores]
+    
+    # PALETA SPRES - 6 cores oficiais
+    cores_spres = [
+        SPRES_BLUE_DARK,      # Azul escuro
+        SPRES_BLUE,           # Azul corporativo
+        SPRES_BLUE_LIGHT,     # Azul claro
+        SPRES_YELLOW_DARK,    # Amarelo escuro
+        SPRES_YELLOW,         # Amarelo vivo
+        SPRES_YELLOW_LIGHT   # amarelo leve
     ]
-    colors = core_colors_top[:len(top8)] + ['#C0C8D0']
-
+    
+    # Cria o treemap - CORRIGIDO para evitar "undefined"
     fig = go.Figure(go.Treemap(
         labels=labels,
-        parents=[''] * len(labels),
-        values=values,
-        texttemplate='<b>%{label}</b><br>R$ %{value:,.0f}<br>(%{percent})',
-        textfont=dict(size=12, color=SPRES_WHITE, family='Inter, sans-serif'),
-        marker=dict(
-            colors=colors,
-            line=dict(color=SPRES_WHITE, width=2),
-            cornerradius=6
+        parents=[''] * len(labels),  # Todos no mesmo nível (raiz)
+        values=valores,
+        
+        # Template do texto dentro dos retângulos
+        texttemplate='%{label}<br>R$ %{value:,.0f}<br>%{percentParent:.1%}',
+        textfont=dict(
+            size=13, 
+            color='white', 
+            family='Inter, sans-serif'
         ),
-        hovertemplate='<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>',
-        tiling=dict(packing='squarify')
+        
+        # Cores Spres
+        marker=dict(
+            colors=cores_spres[:len(labels)],
+            line=dict(color='rgba(255,255,255,0.4)', width=2.5),
+            cornerradius=8
+        ),
+        
+        # Tooltip enriquecido
+        hovertemplate=(
+            '<b>%{label}</b><br>' +
+            'Valor: <b>R$ %{value:,.2f}</b><br>' +
+            '% do Total: <b>%{percentRoot:.1%}</b><br>' +
+            '<extra></extra>'
+        ),
+        
+        textposition='middle center',
+        tiling=dict(packing='squarify', pad=6),
+        pathbar=dict(visible=False)
     ))
-
+    
+    # Layout limpo e profissional
     fig.update_layout(
-        title=None,
-        height=420,
-        margin=dict(l=10, r=10, t=10, b=10),
+        height=460,
+        margin=dict(l=10, r=10, t=30, b=60),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color=SPRES_TEXT, family='Inter, sans-serif'),
+        annotations=[
+            dict(
+                text=f'<i>Total: {formatar_moeda(total_geral)} • 6 principais categorias</i>',
+                x=0.5,
+                y=-0.05,
+                xref='paper',
+                yref='paper',
+                showarrow=False,
+                font=dict(size=11, color=SPRES_TEXT_MUTED)
+            )
+        ]
     )
-
+    
     return fig
 
 def criar_legenda_distribuicao(distribuicao_veiculo):
@@ -870,17 +918,17 @@ def criar_legenda_distribuicao(distribuicao_veiculo):
         rows_html += '<td style="padding:6px 10px; font-size:12px; color:' + SPRES_TEXT_MUTED + '; text-align:right; border-bottom:1px solid rgba(0,75,141,0.06);">'
         rows_html += str(round(pct, 1)) + '%</td></tr>'
 
-    html = '<div style="margin-top:12px; padding:14px 16px; background:rgba(255,255,255,0.5); border-radius:12px; border:1px solid ' + TECH_GLASS_BORDER + ';">'
-    html += '<div style="font-size:12px; font-weight:700; color:' + SPRES_TEXT_MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:8px;">'
-    html += 'Demais veículos (' + str(len(resto)) + ' itens)</div>'
-    html += '<table style="width:100%; border-collapse:collapse;">'
-    html += '<thead><tr style="border-bottom:2px solid rgba(0,75,141,0.1);">'
-    html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:left; text-transform:uppercase; letter-spacing:0.4px;">Veículo</th>'
-    html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:right; text-transform:uppercase; letter-spacing:0.4px;">Valor</th>'
-    html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:right; text-transform:uppercase; letter-spacing:0.4px;">%</th>'
-    html += '</tr></thead><tbody>'
-    html += rows_html
-    html += '</tbody></table></div>'
+        html = '<div style="margin-top:12px; padding:14px 16px; background:rgba(255,255,255,0.5); border-radius:12px; border:1px solid ' + TECH_GLASS_BORDER + ';">'
+        html += '<div style="font-size:12px; font-weight:700; color:' + SPRES_TEXT_MUTED + '; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:8px;">'
+        html += 'Demais veículos (' + str(len(resto)) + ' itens)</div>'
+        html += '<table style="width:100%; border-collapse:collapse;">'
+        html += '<thead><tr style="border-bottom:2px solid rgba(0,75,141,0.1);">'
+        html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:left; text-transform:uppercase; letter-spacing:0.4px;">Veículo</th>'
+        html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:right; text-transform:uppercase; letter-spacing:0.4px;">Valor</th>'
+        html += '<th style="padding:6px 10px; font-size:11px; color:' + SPRES_TEXT_MUTED + '; text-align:right; text-transform:uppercase; letter-spacing:0.4px;">%</th>'
+        html += '</tr></thead><tbody>'
+        html += rows_html
+        html += '</tbody></table></div>'
 
     return html
 
