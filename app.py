@@ -738,15 +738,14 @@ def criar_cards(dados_geral, dados_controle):
         )
 
 def criar_grafico_mensal(dados_mensais):
-    """Cria gráfico de barras do investimento mensal - Versão robusta"""
-    
+    """Cria gráfico de barras do investimento mensal com identidade Spres tecnológica"""
+
     meses = ['Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez', 'Jan']
     
-    # Converte QUALQUER formato para lista numérica limpa
+    # Converte para lista numérica limpa
     valores = []
     
     try:
-        # Tenta pegar os valores
         if hasattr(dados_mensais, 'values'):
             raw_values = dados_mensais.values
         elif hasattr(dados_mensais, 'tolist'):
@@ -758,7 +757,6 @@ def criar_grafico_mensal(dados_mensais):
         else:
             raw_values = [0] * 12
         
-        # Limpa cada valor
         import math
         for v in raw_values[:12]:
             try:
@@ -769,25 +767,19 @@ def criar_grafico_mensal(dados_mensais):
                         valores.append(0.0)
                     else:
                         valores.append(float(v))
-                elif isinstance(v, str):
-                    # Tenta converter string para número
-                    clean = v.replace('R$', '').replace('.', '').replace(',', '.').strip()
-                    valores.append(float(clean))
                 else:
                     valores.append(0.0)
             except:
                 valores.append(0.0)
-                
-    except Exception as e:
-        # Fallback total
+    except:
         valores = [0] * 12
     
-    # Garante exatamente 12 valores
+    # Garante 12 valores
     while len(valores) < 12:
         valores.append(0.0)
     valores = valores[:12]
     
-    # Se TODOS os valores são zero, mostra mensagem
+    # Se todos zero, mostra mensagem
     if all(v == 0 for v in valores):
         fig = go.Figure()
         fig.add_annotation(
@@ -816,12 +808,13 @@ def criar_grafico_mensal(dados_mensais):
             color=SPRES_TEXT,
             family='Inter, sans-serif'
         ),
-        hovertemplate='<b>%{{x}}</b><br>Investimento: <b>R$ %{{y:,.2f}}</b><extra></extra>',
+        # CORRIGIDO: hovertemplate simplificado
+        hovertemplate='%{x}<br>Investimento: R$ %{y:,.2f}<extra></extra>',
         showlegend=False
     ))
     
     fig.update_layout(
-        height=360,
+        height=450,
         margin=dict(l=20, r=20, t=20, b=30),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
