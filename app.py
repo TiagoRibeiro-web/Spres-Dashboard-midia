@@ -924,57 +924,56 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
     # Ordena todos os veículos
     distribuicao_ord = distribuicao_veiculo.sort_values(ascending=False)
     
-    # Monta o HTML como uma string única
+    # Monta o HTML como uma string única - SEM .format() no final!
     html = f"""
-    <div style="margin-top:16px; padding:20px; background:{TECH_GLASS_BG}; 
-                border-radius:16px; border:1px solid {TECH_GLASS_BORDER};
-                backdrop-filter: blur(12px);">
-        
-        <div style="display:flex; justify-content:space-between; align-items:center; 
-                    margin-bottom:16px; padding-bottom:12px; 
-                    border-bottom:2px solid rgba(0,75,141,0.08);">
-            <div>
-                <div style="font-size:14px; font-weight:700; color:{SPRES_BLUE_DARK};">
-                    📊 Distribuição Detalhada
-                </div>
-                <div style="font-size:11px; color:{SPRES_TEXT_MUTED}; margin-top:2px;">
-                    {len(distribuicao_ord)} itens • Total: {formatar_moeda(total_geral)}
-                </div>
+<div style="margin-top:16px; padding:20px; background:{TECH_GLASS_BG}; 
+            border-radius:16px; border:1px solid {TECH_GLASS_BORDER};
+            backdrop-filter: blur(12px);">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; 
+                margin-bottom:16px; padding-bottom:12px; 
+                border-bottom:2px solid rgba(0,75,141,0.08);">
+        <div>
+            <div style="font-size:14px; font-weight:700; color:{SPRES_BLUE_DARK};">
+                📊 Distribuição Detalhada
             </div>
-            <div style="display:flex; gap:16px; font-size:11px; color:{SPRES_TEXT_MUTED};">
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <div style="width:12px; height:12px; background:{SPRES_BLUE}; 
-                                border-radius:3px;"></div>
-                    Principais
-                </div>
-                <div style="display:flex; align-items:center; gap:6px;">
-                    <div style="width:12px; height:12px; background:{SPRES_ORANGE}; 
-                                border-radius:3px;"></div>
-                    Demais
-                </div>
+            <div style="font-size:11px; color:{SPRES_TEXT_MUTED}; margin-top:2px;">
+                {len(distribuicao_ord)} itens &bull; Total: {formatar_moeda(total_geral)}
             </div>
         </div>
-        
-        <table style="width:100%; border-collapse:collapse;">
-            <thead>
-                <tr style="border-bottom:2px solid rgba(0,75,141,0.08);">
-                    <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                               text-align:center; text-transform:uppercase; letter-spacing:0.5px; 
-                               width:40px;">#</th>
-                    <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                               text-align:left; text-transform:uppercase; letter-spacing:0.5px;">Veículo</th>
-                    <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                               text-align:right; text-transform:uppercase; letter-spacing:0.5px;
-                               width:120px;">Investimento</th>
-                    <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
-                               text-align:center; text-transform:uppercase; letter-spacing:0.5px;
-                               width:200px;">% do Total</th>
-                </tr>
-            </thead>
-            <tbody>
-    """
+        <div style="display:flex; gap:16px; font-size:11px; color:{SPRES_TEXT_MUTED};">
+            <div style="display:flex; align-items:center; gap:6px;">
+                <div style="width:12px; height:12px; background:{SPRES_BLUE}; 
+                            border-radius:3px;"></div>
+                Principais
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+                <div style="width:12px; height:12px; background:{SPRES_ORANGE}; 
+                            border-radius:3px;"></div>
+                Demais
+            </div>
+        </div>
+    </div>
     
-    # Adiciona apenas os TOP 5 visíveis + "Demais Veículos"
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr style="border-bottom:2px solid rgba(0,75,141,0.08);">
+                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
+                           text-align:center; text-transform:uppercase; letter-spacing:0.5px; 
+                           width:40px;">#</th>
+                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
+                           text-align:left; text-transform:uppercase; letter-spacing:0.5px;">Veículo</th>
+                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
+                           text-align:right; text-transform:uppercase; letter-spacing:0.5px;
+                           width:120px;">Investimento</th>
+                <th style="padding:8px 12px; font-size:11px; color:{SPRES_TEXT_MUTED}; 
+                           text-align:center; text-transform:uppercase; letter-spacing:0.5px;
+                           width:200px;">% do Total</th>
+            </tr>
+        </thead>
+        <tbody>"""
+    
+    # Adiciona apenas os TOP 5
     for i, (veiculo, valor) in enumerate(distribuicao_ord.head(5).items(), 1):
         pct = (valor / total_geral * 100) if total_geral > 0 else 0
         
@@ -1027,14 +1026,14 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
                                      font-size:13px;">{pct:.1f}%</span>
                     </div>
                 </td>
-            </tr>
-        """
+            </tr>"""
     
-    # Adiciona linha "Demais Veículos" (soma do resto)
+    # Adiciona "Demais Veículos"
     outros_valor = distribuicao_ord.iloc[5:].sum() if len(distribuicao_ord) > 5 else 0
     if outros_valor > 0:
         outros_pct = (outros_valor / total_geral * 100) if total_geral > 0 else 0
         bar_width = min(outros_pct * 2.5, 100)
+        qtd_outros = len(distribuicao_ord) - 5
         
         html += f"""
             <tr style="border-bottom:1px solid rgba(0,75,141,0.04); background:rgba(255,138,30,0.04);">
@@ -1045,7 +1044,7 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
                                  font-size:12px;">6</span>
                 </td>
                 <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
-                           font-weight:600;">Demais Veículos ({len(distribuicao_ord) - 5} itens)</td>
+                           font-weight:600;">Demais Veículos ({qtd_outros} itens)</td>
                 <td style="padding:10px 12px; font-size:13px; color:{SPRES_TEXT}; 
                            text-align:right; font-weight:600;">{formatar_moeda(outros_valor)}</td>
                 <td style="padding:10px 12px; text-align:center;">
@@ -1060,28 +1059,26 @@ def criar_legenda_distribuicao(distribuicao_veiculo, total_geral=None):
                                      font-size:13px;">{outros_pct:.1f}%</span>
                     </div>
                 </td>
-            </tr>
-        """
+            </tr>"""
     
-    # Fecha a tabela e adiciona rodapé
+    # Fecha tabela e adiciona rodapé
     top3_valor = distribuicao_ord.head(3).sum()
     top5_valor = distribuicao_ord.head(5).sum()
     
     html += f"""
-            </tbody>
-        </table>
-        
-        <div style="margin-top:16px; padding:12px 16px; 
-                    background:linear-gradient(135deg, rgba(0,75,141,0.04), rgba(255,214,0,0.03)); 
-                    border-radius:10px; border-left:3px solid {SPRES_BLUE};">
-            <div style="display:flex; gap:20px; font-size:11px; color:{SPRES_TEXT_MUTED};">
-                <div><strong style="color:{SPRES_BLUE};">Top 3:</strong> {formatar_moeda(top3_valor)}</div>
-                <div><strong style="color:{SPRES_BLUE};">Top 5:</strong> {formatar_moeda(top5_valor)}</div>
-                <div><strong style="color:{SPRES_ORANGE};">Demais:</strong> {formatar_moeda(outros_valor)}</div>
-            </div>
+        </tbody>
+    </table>
+    
+    <div style="margin-top:16px; padding:12px 16px; 
+                background:linear-gradient(135deg, rgba(0,75,141,0.04), rgba(255,214,0,0.03)); 
+                border-radius:10px; border-left:3px solid {SPRES_BLUE};">
+        <div style="display:flex; gap:20px; font-size:11px; color:{SPRES_TEXT_MUTED};">
+            <div><strong style="color:{SPRES_BLUE};">Top 3:</strong> {formatar_moeda(top3_valor)}</div>
+            <div><strong style="color:{SPRES_BLUE};">Top 5:</strong> {formatar_moeda(top5_valor)}</div>
+            <div><strong style="color:{SPRES_ORANGE};">Demais:</strong> {formatar_moeda(outros_valor)}</div>
         </div>
     </div>
-    """
+</div>"""
     
     return html
 
